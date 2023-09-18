@@ -1,0 +1,3 @@
+[submodule "jass_kit"]
+	path = jass_kit
+	url = git@github.com:Joelius300/jass-kit-py.git
