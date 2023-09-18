@@ -1,3 +1,4 @@
 -r requirements_common.txt
+-e ./jass_kit
 flake8
 black
