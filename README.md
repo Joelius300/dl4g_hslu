@@ -2,6 +2,14 @@
 
 A bot that plays the swiss card game Jass. Implemented for the Deep Learning for Games module at HSLU.
 
+## Running it
+
+(subject to change obviously, needs to work with whatever deployment you'll be using)
+
+```bash
+python -m jass_bot.main
+```
+
 ## Development
 
 Install the dev dependencies as follows (in a venv obviously).
