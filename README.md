@@ -15,8 +15,11 @@ python -m jass_bot.main
 Install the dev dependencies as follows (in a venv obviously).
 This also installs the jass_kit package (git submodule of the fork) as an editable package.
 
+Also ensure that nbstripout is initialized correctly.
+
 ```bash
 pip install -r requirements_dev.txt
+nbstripout --install --attributes .gitattributes
 ```
 
 ### Note on editable package and pythons incompetence

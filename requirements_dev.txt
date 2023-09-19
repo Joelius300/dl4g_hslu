@@ -2,3 +2,4 @@
 -e ./jass_kit
 flake8
 black
+nbstripout
