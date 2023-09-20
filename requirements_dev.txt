@@ -3,3 +3,4 @@
 flake8
 black
 nbstripout
+ipykernel~=6.25
