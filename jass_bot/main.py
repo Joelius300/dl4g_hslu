@@ -1,8 +1,10 @@
 import logging
 import sys
 
+from agents.minimax_agent import MiniMaxAgent
 from agents.rule_based import RuleBasedAgent
 from jass.agents.agent_cheating import AgentCheating
+from jass.agents.agent_cheating_random_schieber import AgentCheatingRandomSchieber
 from jass.arena.arena import Arena
 from jass.agents.agent_random_schieber import AgentRandomSchieber
 from jass.game.rule_schieber import RuleSchieber
@@ -51,6 +53,7 @@ def test_case_valid_card():
 
 
 if __name__ == "__main__":
-    tournament_ABAB(RuleBasedAgent, AgentRandomSchieber)
+    # tournament_ABAB(RuleBasedAgent, AgentRandomSchieber)
+    tournament_ABAB(MiniMaxAgent, AgentCheatingRandomSchieber)
     # test_case_valid_card()
     # print(count_colors(get_cards_encoded([DA, DQ, D6, S10, S7, C9])))
