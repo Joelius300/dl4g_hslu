@@ -2,6 +2,7 @@ import logging
 import sys
 
 from agents.rule_based import RuleBasedAgent
+from jass.agents.agent_cheating import AgentCheating
 from jass.arena.arena import Arena
 from jass.agents.agent_random_schieber import AgentRandomSchieber
 from jass.game.rule_schieber import RuleSchieber
@@ -12,7 +13,7 @@ from jass.game.const import *
 def tournament_ABAB(agent_type: type, opponent_type: type, n_games=1000):
     logging.basicConfig(level=logging.WARNING)
 
-    arena = Arena(nr_games_to_play=n_games, save_filename='arena_games')
+    arena = Arena(nr_games_to_play=n_games, save_filename='arena_games', cheating_mode=issubclass(agent_type, AgentCheating))
     arena.set_players(
         agent_type(),
         opponent_type(),

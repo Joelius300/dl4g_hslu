@@ -6,7 +6,8 @@ from functools import cache
 
 import numpy as np
 
-from jass.game.const import UNE_UFE, OBE_ABE
+from jass.game.const import UNE_UFE, OBE_ABE, MAX_TRUMP, PUSH
+from jass.game.game_observation import GameObservation
 
 # score if the color is trump
 trump_scores = [15, 10, 7, 25, 6, 19, 5, 5, 5]
@@ -37,3 +38,16 @@ def get_graf_scores(trump: int):
         )
 
     return np.array(scores)
+
+
+def graf_trump_selection(obs: GameObservation) -> int:
+    def points_for_trump(trump: int):
+        return np.sum(get_graf_scores(trump) * obs.hand)
+
+    scores_for_trumps = [points_for_trump(i) for i in range(MAX_TRUMP + 1)]
+    best_trump = np.argmax(scores_for_trumps)
+
+    if scores_for_trumps[best_trump] < push_threshold and obs.declared_trump < 0:
+        return PUSH
+
+    return best_trump

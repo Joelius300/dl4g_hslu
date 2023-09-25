@@ -13,6 +13,9 @@ import jass_bot.heuristics.graf as graf
 
 
 class RuleBasedAgent(Agent):
+    """
+    Rule based agent using the Graf Heuristics.
+    """
     def __init__(self):
         # log actions
         self._logger = logging.getLogger(__name__)
@@ -20,16 +23,7 @@ class RuleBasedAgent(Agent):
         self._rule = RuleSchieber()
 
     def action_trump(self, obs: GameObservation) -> int:
-        def points_for_trump(trump: int):
-            return np.sum(graf.get_graf_scores(trump) * obs.hand)
-
-        trump_scores = [points_for_trump(i) for i in range(MAX_TRUMP + 1)]
-        best_trump = np.argmax(trump_scores)
-
-        if trump_scores[best_trump] < graf.push_threshold and obs.declared_trump < 0:
-            return PUSH
-
-        return best_trump
+        return graf.graf_trump_selection(obs)
 
     def action_play_card(self, obs: GameObservation) -> int:
         # card = self._get_random_card(obs)
