@@ -2,5 +2,6 @@
 -e ./jass_kit
 flake8
 black
+pyright
 nbstripout
 ipykernel~=6.25
