@@ -9,10 +9,10 @@ from jass.game.game_util import *
 from jass.game.const import *
 
 
-def tournament_ABAB(agent_type: type, opponent_type: type, rounds=1000):
+def tournament_ABAB(agent_type: type, opponent_type: type, n_games=1000):
     logging.basicConfig(level=logging.WARNING)
 
-    arena = Arena(nr_games_to_play=rounds, save_filename='arena_games')
+    arena = Arena(nr_games_to_play=n_games, save_filename='arena_games')
     arena.set_players(
         agent_type(),
         opponent_type(),
@@ -53,4 +53,3 @@ if __name__ == "__main__":
     tournament_ABAB(RuleBasedAgent, AgentRandomSchieber)
     # test_case_valid_card()
     # print(count_colors(get_cards_encoded([DA, DQ, D6, S10, S7, C9])))
-
