@@ -54,6 +54,6 @@ def test_case_valid_card():
 
 if __name__ == "__main__":
     # tournament_ABAB(RuleBasedAgent, AgentRandomSchieber)
-    tournament_ABAB(MiniMaxAgent, AgentCheatingRandomSchieber, n_games=2000)
+    tournament_ABAB(MiniMaxAgent, AgentCheatingRandomSchieber, n_games=10)
     # test_case_valid_card()
     # print(count_colors(get_cards_encoded([DA, DQ, D6, S10, S7, C9])))
