@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import copy
 import logging
+import sys
 from dataclasses import dataclass
 from typing import NamedTuple
 
@@ -25,46 +28,75 @@ class MiniMaxAgent(AgentCheating):
         return graf_trump_selection(observation_from_state(state))
 
     def action_play_card(self, state: GameState) -> int:
-        card, score = self._start_minimax(state, depth=4)
+        card, score = self._start_minimax(state)
+        self._logger.debug(f"Playing card {card_strings[card]} after minimax to get score {score}.")
         return card
 
     @dataclass
     class Node:
-        state: GameState
-        best_score: int = -1
-        best_card: int = -1
+        state: GameState  # the current state of the game after that last card was played
+        played_card: int = -1  # the card last played to get to this node
+        achieved_score: int = -1  # the best score achieved in this subtree (after having played that card)
+        has_score: bool = False  # helper to ensure setting the score
+        children: list[MiniMaxAgent.Node] = None  # one child for each playable card from this state on
+        expanded: bool = False  # helper to ensure population of children
 
-    def _start_minimax(self, state: GameState, depth: int) -> (int, int):
-        origin_node = self.Node(state=state)
-        self._explore_node(origin_node, depth, maximize=True)
-        return origin_node.best_card, origin_node.best_score
+        def is_terminal(self):
+            return self.state.nr_tricks == 9
 
-    def _explore_node(self, node: Node, depth: int, maximize: bool):
-        state = node.state
+        def is_at_end_of_trick(self):
+            return self.state.nr_tricks > 0 and self.state.nr_cards_in_trick == 0
+
+    # current implementation is very inefficient because it evaluates the same path for all players everytime
+    # instead of having one common tree per game which all players could access so the relevant subtree could
+    # be found without having to build it from the ground up again. Could be hard to implement though because
+    # you'll need to keep track of where exactly you are in the game.
+    def _start_minimax(self, state: GameState) -> (int, int):
+        origin_node = self.Node(state=state)  # origin node does not have a card played, all the children will
+        self._minimax(origin_node, maximize=True)
+        # after origin node goes through minimax, it has an achieved_score that is the maximum it can get from the
+        # current position. To know how, you'll need to examine the child with the best score.
+        highest_scoring_child = max(origin_node.children, key=lambda c: c.achieved_score)
+        return highest_scoring_child.played_card, highest_scoring_child.achieved_score
+
+    def _expand_node(self, node: Node):
+        """
+        Expands node by playing all the possible valid cards and
+        adds each (unevaluated) outcome as children of this node.
+        """
+        if node.expanded:
+            return False
+
+        node.children = []
+        valid_cards_enc = self._rule.get_valid_cards_from_state(node.state)
+        valid_cards = convert_one_hot_encoded_cards_to_int_encoded_list(valid_cards_enc)
         game_sim = GameSim(self._rule)
-        game_sim.init_from_state(state)
-        if depth <= 0 or game_sim.is_done():
-            # assert state.nr_cards_in_trick == 0, "Should be 0 cards in trick when no trick is left to do (depth=0)"
-            node.best_score = state.trick_points[state.nr_tricks-1] * (1 if maximize else -1)
+        for card in valid_cards:
+            game_sim.init_from_state(node.state)
+            game_sim.action_play_card(card)
+            node.children.append(self.Node(game_sim.state, played_card=card))
+
+        node.expanded = True
+
+        return True
+
+    def _minimax(self, node: Node, maximize: bool):
+        self._expand_node(node)  # ensure the children are populated (all the valid moves are played)
+        assert node.expanded, "Node is not expanded after _expand_node call"
+        if node.is_at_end_of_trick():  # currently terminate at end of trick
+            node.achieved_score = node.state.points[team[node.state.player]] * (1 if maximize else -1)
+            node.has_score = True
             return
 
-        valid_cards_enc = self._rule.get_valid_cards_from_state(state)
-        valid_cards = convert_one_hot_encoded_cards_to_int_encoded_list(valid_cards_enc)
+        best_child_score = sys.maxsize * (-1 if maximize else 1)
+        for child in node.children:
+            self._minimax(child, not maximize)
+            assert child.has_score, "Child does not have score after minimax"  # ensure we aren't including -1's
+            if maximize:
+                best_child_score = max(best_child_score, child.achieved_score)
+            else:
+                best_child_score = min(best_child_score, child.achieved_score)
 
-        best_node = None
-        best_card = -1
-        for card in valid_cards:
-            game_sim.init_from_state(state)
-            game_sim.action_play_card(card)
-            next_node = self.Node(game_sim.state)
-            self._explore_node(next_node, depth-1, not maximize)
-            if (best_node is None or
-                    (maximize and next_node.best_score > best_node.best_score) or
-                    (not maximize and next_node.best_score < best_node.best_score)):
-                best_node = next_node
-                best_card = card
-
-        node.best_score = best_node.best_score
-        node.best_card = best_card
-        self._logger.debug(f"Best card for {'max' if maximize else 'min'}imizer at depth={depth} = {card_strings[best_card]} with score {node.best_score}")
-        assert valid_cards_enc[best_card] == 1, "Best chosen card is not a valid card!"
+        node.achieved_score = best_child_score
+        node.has_score = True
+        return
