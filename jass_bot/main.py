@@ -1,8 +1,12 @@
+import copy
 import logging
 import sys
+from typing import Callable
 
+from agents.game_tree_container import GameTreeContainer
 from agents.minimax_agent import MiniMaxAgent
 from agents.rule_based import RuleBasedAgent
+from jass.agents.agent import Agent
 from jass.agents.agent_cheating import AgentCheating
 from jass.agents.agent_cheating_random_schieber import AgentCheatingRandomSchieber
 from jass.arena.arena import Arena
@@ -12,12 +16,14 @@ from jass.game.game_util import *
 from jass.game.const import *
 
 
-def tournament_ABAB(agent_type: type, opponent_type: type, n_games=1000):
-    logging.basicConfig(level=logging.WARNING)
+def tournament_ABAB(agent_type: type | Callable[[], Agent | AgentCheating], opponent_type: type, n_games=1000):
+    logging.basicConfig(level=logging.INFO)
 
-    arena = Arena(nr_games_to_play=n_games, save_filename='arena_games', cheating_mode=issubclass(agent_type, AgentCheating))
+    agent = agent_type()
+
+    arena = Arena(nr_games_to_play=n_games, save_filename='arena_games', cheating_mode=isinstance(agent, AgentCheating))
     arena.set_players(
-        agent_type(),
+        agent,
         opponent_type(),
         agent_type(),
         opponent_type()
@@ -54,6 +60,7 @@ def test_case_valid_card():
 
 if __name__ == "__main__":
     # tournament_ABAB(RuleBasedAgent, AgentRandomSchieber)
-    tournament_ABAB(MiniMaxAgent, AgentCheatingRandomSchieber, n_games=10)
+    tree_container = GameTreeContainer()
+    tournament_ABAB(lambda: MiniMaxAgent(tree_container, depth=2), AgentCheatingRandomSchieber, n_games=10)
     # test_case_valid_card()
     # print(count_colors(get_cards_encoded([DA, DQ, D6, S10, S7, C9])))
