@@ -39,6 +39,7 @@ class GameTreeContainer:
         self.root: Optional[GameTreeNode] = None
         self.cards_played_to_root: Optional[set] = None
         self._rule = rule if rule else RuleSchieber()
+        self._player_at_root = -1
 
     def initialize_override(self, state: GameState):
         self._logger.debug("Overriding current game tree!")
@@ -46,9 +47,11 @@ class GameTreeContainer:
 
         last_played_card = state.get_card_played(state.nr_played_cards-1) if state.nr_played_cards > 0 else -1
         self.root = GameTreeNode(state=state.clone(), played_card=last_played_card)
+        self._player_at_root = state.player
         self.cards_played_to_root = set()
         for ci in range(state.nr_played_cards):
             self.cards_played_to_root.add(state.get_card_played(ci))
+        assert state.player == (len(self.cards_played_to_root) + self._player_at_root) % 4, "Player does not align with depth at tree init"
 
     def initialize_if_uninitialized(self, state: GameState):
         if self.root is None:
@@ -63,6 +66,7 @@ class GameTreeContainer:
     def find_node(self, state: GameState):
         node = self.root
         sim = None
+        depth = 0
         for trick_id in range(state.nr_tricks+1):
             trick = state.tricks[trick_id]
             for card in trick:
@@ -70,10 +74,14 @@ class GameTreeContainer:
                     break  # this trick is done
 
                 if card in self.cards_played_to_root:
+                    depth += 1
                     continue
 
                 if node.children is None:
                     node.children = {}
+                else:
+                    for c in node.children.values():
+                        assert (c.state.player + self._player_at_root + 1) == depth % 4, "Player does not align with depth at find_node"
 
                 if card not in node.children:
                     if sim is None:
@@ -86,5 +94,6 @@ class GameTreeContainer:
                     node.children[card] = GameTreeNode(sim.state, played_card=card)
 
                 node = node.children[card]
+                depth += 1
 
         return node

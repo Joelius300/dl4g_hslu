@@ -47,7 +47,7 @@ def graf_trump_selection(obs: GameObservation) -> int:
     scores_for_trumps = [points_for_trump(i) for i in range(MAX_TRUMP + 1)]
     best_trump = np.argmax(scores_for_trumps)
 
-    if scores_for_trumps[best_trump] < push_threshold and obs.declared_trump < 0:
+    if scores_for_trumps[best_trump] < push_threshold and obs.forehand == -1:
         return PUSH
 
     return best_trump
