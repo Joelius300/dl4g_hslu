@@ -19,18 +19,11 @@ class GameTreeNode:
     """the current state of the game after that last card was played"""
     played_card: int = -1
     """the card last played (to get to this node)"""
-    achieved_score: int = -1
-    """the best score achievable in this subtree"""
-    has_score: bool = False
-    """helper to ensure setting the score"""
+    achievable_score: int = -1
+    """the best score achievable in this subtree.
+    Does not correspond directly to game points; might include additional heuristics."""
     children: Optional[dict[[int, GameTreeNode]]] = None
     """children of this node; one child for each playable card from this state on"""
-    expanded: bool = False
-    """helper to ensure population of children"""
-    end_of_search: bool = False
-    """signals that minimax should not continue searching from this node on"""
-    total_children: int = 0
-    """total children explored in this subtree"""
 
     def is_terminal(self):
         return self.state.nr_tricks == 9
@@ -95,17 +88,3 @@ class GameTreeContainer:
                 node = node.children[card]
 
         return node
-
-    def reset_end_of_search(self):
-        # not sure if this is a good strategy, I could also just remove the property
-        # and only rely on depth and that should also work (faster too)
-        self._reset_end_of_search_for_node(self.root)
-
-    def _reset_end_of_search_for_node(self, node: GameTreeNode):
-        if node is None or not node.children:
-            return
-
-        for c in node.children.values():
-            c.end_of_search = False
-            self._reset_end_of_search_for_node(c)
-

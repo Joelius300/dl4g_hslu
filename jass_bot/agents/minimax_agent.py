@@ -9,7 +9,7 @@ from typing import NamedTuple, Optional
 import numpy as np
 
 from agents.game_tree_container import GameTreeContainer, GameTreeNode
-from heuristics.graf import graf_trump_selection
+from heuristics.graf import graf_trump_selection, get_graf_scores
 from jass.agents.agent import Agent
 from jass.agents.agent_cheating import AgentCheating
 from jass.game.const import *
@@ -22,15 +22,17 @@ from jass.game.rule_schieber import RuleSchieber
 
 
 class MiniMaxAgent(AgentCheating):
-    def __init__(self, tree: GameTreeContainer, depth=1):
+    def __init__(self, tree: GameTreeContainer, depth=1, graf_score_scaling=.1):
         self._logger = logging.getLogger(__name__)
         self._rule = RuleSchieber()
         self._depth = depth
         self._tree = tree
+        self._graf_score_scaling=graf_score_scaling
 
     def setup(self, game_id: Optional[int] = None):
         self._tree.clear()  # this only happens at the start of the game,
         # so we can clear the entire tree and open it for initialization
+        # not in the original library, maybe not usable there
 
     def action_trump(self, state: GameState) -> int:
         return graf_trump_selection(observation_from_state(state))
@@ -44,25 +46,23 @@ class MiniMaxAgent(AgentCheating):
         # initialize tree at the first card action from our side, meaning some
         # other players could have played already. Therefore, the root may not be the very initial state.
         self._tree.initialize_if_uninitialized(state)
-        self._tree.reset_end_of_search()
 
         origin_node = self._tree.find_node(state)  # retrieve game tree node without calculating it everytime
 
         self._minimax(origin_node, depth_complete_tricks=depth, maximize=True, first_call=True)
         # after origin node goes through minimax, it has an achieved_score that is the maximum it can get from the
         # current position. To know how, you'll need to examine the child with the best score.
-        self._logger.debug("Minimax with depth %i evaluated %i nodes", depth, origin_node.total_children)
-        highest_scoring_child = max(origin_node.children.values(), key=lambda c: c.achieved_score)
+        highest_scoring_child = max(origin_node.children.values(), key=lambda c: c.achievable_score)
 
         assert state == origin_node.state, "State of origin node is not in sync with original state anymore"
-        return highest_scoring_child.played_card, highest_scoring_child.achieved_score
+        return highest_scoring_child.played_card, highest_scoring_child.achievable_score
 
     def _expand_node(self, node: GameTreeNode):
         """
         Expands node by playing all the possible valid cards and
         adds each (unevaluated) outcome as children of this node.
         """
-        if node.expanded:
+        if node.children is not None:
             return False
 
         node.children = {}
@@ -74,25 +74,16 @@ class MiniMaxAgent(AgentCheating):
             game_sim.action_play_card(card)
             node.children[card] = GameTreeNode(game_sim.state, played_card=card)
 
-        node.expanded = True
         return True
 
     def _minimax(self, node: GameTreeNode, depth_complete_tricks: int, maximize: bool, first_call=False):
-        if node.end_of_search:
-            assert node.has_score, "Node is end of search but has no score"
-            return
-
         if depth_complete_tricks == 0:
-            node.achieved_score = node.state.points[team[node.state.player]] * (1 if maximize else -1)
-            node.has_score = True
-            node.end_of_search = True
-            node.total_children = 0
+            node.achievable_score = node.state.points[team[node.state.player]] * (1 if maximize else -1)
             return
 
         assert depth_complete_tricks > 0, "Depth is not positive"
 
         self._expand_node(node)  # ensure the children are populated (all the valid moves are played)
-        assert node.expanded, "Node is not expanded after _expand_node call"
 
         best_child_score = sys.maxsize * (-1 if maximize else 1)
         left_depth = -1
@@ -104,13 +95,10 @@ class MiniMaxAgent(AgentCheating):
                     left_depth = depth_complete_tricks
 
             self._minimax(child, left_depth, not maximize)
-            node.total_children += child.total_children + 1
 
-            assert child.has_score, "Child does not have score after minimax"  # ensure we aren't including -1's
             if maximize:
-                best_child_score = max(best_child_score, child.achieved_score)
+                best_child_score = max(best_child_score, child.achievable_score)
             else:
-                best_child_score = min(best_child_score, child.achieved_score)
+                best_child_score = min(best_child_score, child.achievable_score)
 
-        node.achieved_score = best_child_score
-        node.has_score = True
+        node.achievable_score = best_child_score
