@@ -27,7 +27,7 @@ class MiniMaxAgent(AgentCheating):
         self._rule = RuleSchieber()
         self._depth = depth
         self._tree = tree
-        self._graf_score_scaling=graf_score_scaling
+        self._graf_score_scaling = graf_score_scaling
 
     def setup(self, game_id: Optional[int] = None):
         self._tree.clear()  # this only happens at the start of the game,
@@ -78,7 +78,14 @@ class MiniMaxAgent(AgentCheating):
 
     def _minimax(self, node: GameTreeNode, depth_complete_tricks: int, maximize: bool, first_call=False):
         if depth_complete_tricks == 0:
-            node.achievable_score = node.state.points[team[node.state.player]] * (1 if maximize else -1)
+            graf_scores = get_graf_scores(node.state.trump)
+            # Currently this implementation takes the scores of the entire game, not just of the min-maxed tricks,
+            # could that be an issue? Since they start from the same point, it should just be a constant added on top
+            # that doesn't influence which action is considered better.
+            combined_player_hands = node.state.hands[node.state.player] + node.state.hands[partner_player[node.state.player]]
+            node.achievable_score = ((node.state.points[team[node.state.player]] +
+                                     np.sum(graf_scores * combined_player_hands) * self._graf_score_scaling)
+                                     * (1 if maximize else -1))
             return
 
         assert depth_complete_tricks > 0, "Depth is not positive"
