@@ -45,13 +45,15 @@ class GameTreeContainer:
         self._logger.debug("Overriding current game tree!")
         self.clear()  # just to be safe
 
-        last_played_card = state.get_card_played(state.nr_played_cards-1) if state.nr_played_cards > 0 else -1
+        last_played_card = (
+            state.get_card_played(state.nr_played_cards - 1)
+            if state.nr_played_cards > 0
+            else -1
+        )
         self.root = GameTreeNode(state=state.clone(), played_card=last_played_card)
-        self._player_at_root = state.player
         self.cards_played_to_root = set()
         for ci in range(state.nr_played_cards):
             self.cards_played_to_root.add(state.get_card_played(ci))
-        assert state.player == (len(self.cards_played_to_root) + self._player_at_root) % 4, "Player does not align with depth at tree init"
 
     def initialize_if_uninitialized(self, state: GameState):
         if self.root is None:
@@ -67,21 +69,32 @@ class GameTreeContainer:
         node = self.root
         sim = None
         depth = 0
-        for trick_id in range(state.nr_tricks+1):
+        path = []
+        for trick_id in range(state.nr_tricks + 1):
             trick = state.tricks[trick_id]
             for card in trick:
                 if card == -1:
                     break  # this trick is done
 
                 if card in self.cards_played_to_root:
+                    path += [card]
                     depth += 1
                     continue
 
                 if node.children is None:
                     node.children = {}
-                else:
+                elif node.state.nr_cards_in_trick != 3:
+                    # if 3 cards are in the trick, the fourth card will be played, after which
+                    # the winner will be determined and all the children will have their player
+                    # set to the trick winner, which could be different in all paths.
+                    # therefore not every level (depth) corresponds to one player.
+                    # This game tree thing seems to be a bastardized mix between game tree and search tree..
+                    player = None
                     for c in node.children.values():
-                        assert (c.state.player + self._player_at_root + 1) == depth % 4, "Player does not align with depth at find_node"
+                        assert (
+                            player is None or player == c.state.player
+                        ), "Not all children have the same player"
+                        player = c.state.player
 
                 if card not in node.children:
                     if sim is None:
@@ -94,6 +107,10 @@ class GameTreeContainer:
                     node.children[card] = GameTreeNode(sim.state, played_card=card)
 
                 node = node.children[card]
+                path += [card]
                 depth += 1
 
+        assert node.state == state, "Retrieved node state not equal to search state"
+        assert depth == state.nr_played_cards, "Depth not equal to played cards"
+        self._logger.debug("Found state (D=%i) after cards %s", depth, ", ".join(card_strings[c] for c in path))
         return node

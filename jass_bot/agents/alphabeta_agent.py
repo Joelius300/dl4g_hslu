@@ -21,6 +21,15 @@ from jass.game.game_state import GameState
 from jass.game.rule_schieber import RuleSchieber
 
 
+# I have no idea why but this performs terribly, much worse than Minimax (although faster).
+# AFAIK alpha beta pruning should be equivalent to minimax outcome wise, only irrelevant branches
+# are pruned and therefore not explored but somehow Minimax performs much better. To make things worse,
+# I am more confident in this implementation than in minimax because it's a more direct pseudocode translation
+# of the wikipedia alpha-beta pruning, with the additional, probably erroneous components of game tree caching and
+# custom depth measurement.
+# AND increasing the depth of alpha-beta pruning doesn't make it much better either.
+# It looses around 50/100 pretty consistently on depth=1. At depth 3 against depth 1 it managed 70/88 so still worse.
+# I think we'll just leave it like that and move on to MCTS and hope for a brighter future there.
 class AlphaBetaAgent(AgentCheating):
     def __init__(self, tree: GameTreeContainer, depth=1):
         self._logger = logging.getLogger(__name__)
@@ -37,11 +46,11 @@ class AlphaBetaAgent(AgentCheating):
         return graf_trump_selection(observation_from_state(state))
 
     def action_play_card(self, state: GameState) -> int:
-        card, score = self._start_minimax(state, self._depth)
+        card, score = self._start_alphabeta(state, self._depth)
         self._logger.debug(f"Playing card {card_strings[card]} after alpha-beta to get score {score}.")
         return card
 
-    def _start_minimax(self, state: GameState, depth: int) -> (int, int):
+    def _start_alphabeta(self, state: GameState, depth: int) -> (int, int):
         # initialize tree at the first card action from our side, meaning some
         # other players could have played already. Therefore, the root may not be the very initial state.
         self._tree.initialize_if_uninitialized(state)
@@ -102,7 +111,9 @@ class AlphaBetaAgent(AgentCheating):
                 else:
                     left_depth = depth_complete_tricks
 
-            best_child_score = self._alphabeta(child, left_depth, alpha, beta, not maximize)
+            # the assumption that maximize and minimize always switch like tic-tac-toe for example is wrong
+            # because of the transition from one trick to the other where the last winner is first
+            best_child_score = self._alphabeta(child, left_depth, alpha, beta, maximize if same_team[node.state.player, child.state.player] else not maximize)
 
             if maximize:
                 if best_child_score > beta:
