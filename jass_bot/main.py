@@ -20,8 +20,6 @@ from jass.game.const import *
 def tournament_ABAB(agent_type: type | Callable[[], Agent | AgentCheating],
                     opponent_type: type | Callable[[], Agent | AgentCheating],
                     n_games=1000):
-    logging.basicConfig(level=logging.INFO)
-
     agent = agent_type()
     opponent = opponent_type()
 
@@ -63,10 +61,12 @@ def test_case_valid_card():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+
     # tournament_ABAB(RuleBasedAgent, AgentRandomSchieber)
     tree_container = GameTreeContainer()
-    # tournament_ABAB(lambda: MiniMaxAgent(tree_container, depth=2), AgentCheatingRandomSchieber, n_games=10)
+    tournament_ABAB(lambda: MiniMaxAgent(tree_container, depth=1), AgentCheatingRandomSchieber, n_games=200)
     # tournament_ABAB(lambda: AlphaBetaAgent(tree_container, depth=2), AgentCheatingRandomSchieber, n_games=10)
-    tournament_ABAB(lambda: AlphaBetaAgent(tree_container, depth=1), lambda: MiniMaxAgent(tree_container, depth=1), n_games=100)
+    # tournament_ABAB(lambda: AlphaBetaAgent(tree_container, depth=1), lambda: MiniMaxAgent(tree_container, depth=1), n_games=75)
     # test_case_valid_card()
     # print(count_colors(get_cards_encoded([DA, DQ, D6, S10, S7, C9])))

@@ -93,7 +93,9 @@ class MiniMaxAgent(AgentCheating):
                 else:
                     left_depth = depth_complete_tricks
 
-            self._minimax(child, left_depth, not maximize)
+            # the assumption that maximize and minimize always switch like tic-tac-toe for example is wrong
+            # because of the transition from one trick to the other where the last winner is first
+            self._minimax(child, left_depth, maximize if same_team[node.state.player, child.state.player] else not maximize)
 
             if maximize:
                 best_child_score = max(best_child_score, child.achievable_score)
