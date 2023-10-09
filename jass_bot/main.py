@@ -3,6 +3,7 @@ import logging
 import sys
 from typing import Callable
 
+from agents.CheatingMCTS import CheatingMCTS
 from agents.alphabeta_agent import AlphaBetaAgent
 from agents.game_tree_container import GameTreeContainer
 from agents.minimax_agent import MiniMaxAgent
@@ -64,9 +65,10 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     # tournament_ABAB(RuleBasedAgent, AgentRandomSchieber)
-    tree_container = GameTreeContainer()
+    # tree_container = GameTreeContainer()
     # tournament_ABAB(lambda: MiniMaxAgent(tree_container, depth=1), AgentCheatingRandomSchieber, n_games=200)
     # tournament_ABAB(lambda: AlphaBetaAgent(tree_container, depth=2), AgentCheatingRandomSchieber, n_games=50)
-    tournament_ABAB(lambda: AlphaBetaAgent(tree_container, depth=3), lambda: MiniMaxAgent(tree_container, depth=1), n_games=30)
+    # tournament_ABAB(lambda: AlphaBetaAgent(tree_container, depth=3), lambda: MiniMaxAgent(tree_container, depth=1), n_games=30)
     # test_case_valid_card()
     # print(count_colors(get_cards_encoded([DA, DQ, D6, S10, S7, C9])))
+    tournament_ABAB(lambda: CheatingMCTS(timebudget=0.25), AgentCheatingRandomSchieber, n_games=50)
