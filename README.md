@@ -7,8 +7,10 @@ A bot that plays the swiss card game Jass. Implemented for the Deep Learning for
 (subject to change obviously, needs to work with whatever deployment you'll be using)
 
 ```bash
-python -m jass_bot.main
+PYTHONPATH="jass_bot:jass_kit:$PYTHONPATH" python -OO -m jass_bot.main
 ```
+
+For some reason, it is necessary to add to the PYTHONPATH to run it, even though jass_kit is installed as a package and the jass_bot package should work fine as it's just a normal package with subfolders etc. In PyCharm, you can set both jass_kit and jass_bot as source folders and it automatically adds them to the python path.
 
 ## Development
 
