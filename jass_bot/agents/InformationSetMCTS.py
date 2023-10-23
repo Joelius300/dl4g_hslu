@@ -95,14 +95,15 @@ class InformationSetMCTS(Agent):
             """
 
         def without_card(self, player: int, card: int):
-            return InformationSetMCTS.InformationSet(
-                # using a set, we don't have to deal with consolidation but actually not sure if that was necessary.
-                {
-                    hand.without_card(player, card)
-                    for hand in self.possible_hands
-                    if hand.has_card(player, card)
-                }
-            )
+            # using a set, we don't have to deal with consolidation but actually not sure if that's necessary.
+            # iteration is also a lot less efficient, but lookup is much faster.
+            hands_raw = {
+                hand.without_card(player, card)
+                for hand in self.possible_hands
+                if hand.has_card(player, card)
+            }
+
+            return InformationSetMCTS.InformationSet(hands_raw)
 
         def get_random_hand(self):
             return random.choice(self.possible_hands)
@@ -114,18 +115,26 @@ class InformationSetMCTS(Agent):
 
         N: int
         """Number of simulations (random walks) started from this node."""
+        Ns: dict[InformationSetMCTS.Hands, int]
+        """Number of simulations (random walks) started from this node WITH A CERTAIN HAND SAMPLE."""
+        ParentNWhenAvailable: int
+        """
+        Number of simulations (random walks) stared from the PARENT NODE, WHEN THIS NODE WAS AN
+        AVAILABLE CHILD (compatible with the sampled hand).
+        """
         W: Payoffs
         """Accumulated payoff vectors (one component for each team)."""
+        expanded_for: set[InformationSetMCTS.Hands]
+        """All the hands this node has been expanded for."""
 
         cards_played_so_far: list[int]
         """All the cards played so far to get to this state."""
-
         information_set: InformationSetMCTS.InformationSet
         """Information set from the POV of the root node player."""
-
         current_trick: np.ndarray
-
+        """Current trick in the game."""
         trump: int
+        """Trump of the game."""
 
         """Current game state"""
         parent: Optional[InformationSetMCTS.Node]
@@ -133,18 +142,20 @@ class InformationSetMCTS(Agent):
         children: Optional[list[InformationSetMCTS.Node]]
         """Nodes that are possible to reach from here by playing one of the valid actions."""
 
-        _remaining_cards: Optional[list[int]]
-
-        def __init__(self,
-                     cards_played_so_far: list[int],
-                     information_set: InformationSetMCTS.InformationSet,
-                     current_trick: np.ndarray,
-                     nr_card_in_trick: int,
-                     player: int,
-                     trump: int,
-                     parent: InformationSetMCTS.Node):
+        def __init__(
+            self,
+            cards_played_so_far: list[int],
+            information_set: InformationSetMCTS.InformationSet,
+            current_trick: np.ndarray,
+            nr_card_in_trick: int,
+            player: int,
+            trump: int,
+            parent: Optional[InformationSetMCTS.Node],
+        ):
             self.N = 0
+            self.Ns = dict()
             self.W = np.zeros(2)
+            self.expanded_for = set()
             self.cards_played_so_far = cards_played_so_far
             self.information_set = information_set
             self.current_trick = current_trick
@@ -152,19 +163,29 @@ class InformationSetMCTS(Agent):
             self.player = player
             self.trump = trump
             self.parent = parent
+            if self.parent:
+                # initialized to the parent N and updated in backprop
+                self.parentNWhenAvailable = self.parent.N
 
         @property
         def is_terminal(self):
             """Is this node at the end of a game (no more valid moves)."""
             return self.cards_played_so_far == 36
 
-        @property
-        def fully_expanded(self):
-            return self._remaining_cards is not None and len(self._remaining_cards) == 0
+        def expanded_for(self, sampled_hands: InformationSetMCTS.Hands):
+            return sampled_hands in self.expanded_for
+            # return self._remaining_cards is not None and len(self._remaining_cards) == 0
 
         @property
         def has_been_sampled(self):
             return self.N > 0
+
+        def has_been_sampled_for(self, sampled_hands: InformationSetMCTS.Hands):
+            was_sampled = sampled_hands in self.Ns
+            assert (
+                not was_sampled or self.Ns[sampled_hands] > 0
+            ), "N <= 0 for sampled hand"
+            return was_sampled
 
         @property
         def is_root(self):
@@ -183,7 +204,9 @@ class InformationSetMCTS(Agent):
 
             return self.cards_played_so_far[-1]
 
-        def children_compatible_with_sample(self, sampled_hands: np.ndarray) -> bool:
+        def children_compatible_with_sample(
+            self, sampled_hands: InformationSetMCTS.Hands
+        ) -> Iterable[InformationSetMCTS.Node]:
             raise NotImplementedError
 
         def get_valid_cards_for_sampled_state(
@@ -196,8 +219,9 @@ class InformationSetMCTS(Agent):
                 self.trump,
             )
 
-        def play_card(self, rule: GameRule, sampled_hands: InformationSetMCTS.Hands, parent: InformationSetMCTS.Node, card: int):
-            """Plays a card and returns the node that follows from that play."""
+        def init_game_sim(
+            self, rule: GameRule, sampled_hands: InformationSetMCTS.Hands
+        ):
             sim = GameSim(rule)
             sim.state.hands = sampled_hands.hands
             sim.state.player = self.player
@@ -206,22 +230,32 @@ class InformationSetMCTS(Agent):
             # write into, don't destroy references just in case
             np.copyto(sim.state.current_trick, self.current_trick)
             rule.assert_invariants(sim.state)
+
+            return sim
+
+        def play_card(
+            self,
+            rule: GameRule,
+            sampled_hands: InformationSetMCTS.Hands,
+            parent: InformationSetMCTS.Node,
+            card: int,
+        ):
+            """Plays a card and returns the node that follows from that play."""
+            sim = self.init_game_sim(rule, sampled_hands)
             sim.action_play_card(card)
             new_player = sim.state.player
             new_nr_card_in_trick = sim.state.nr_cards_in_trick
             new_current_trick = sim.state.current_trick
-            new_information_set = self.information_set.without_card(
-                self.player, card
-            )
+            new_information_set = self.information_set.without_card(self.player, card)
 
             return InformationSetMCTS.Node(
-                card,
+                self.cards_played_so_far + [card],
                 new_information_set,
                 new_current_trick,
                 new_nr_card_in_trick,
                 new_player,
                 self.trump,
-                parent
+                parent,
             )
 
     def __init__(
@@ -231,7 +265,7 @@ class InformationSetMCTS(Agent):
         tree_policy: Optional[Callable[[Node, int, int], Node]] = None,
         rollout: Optional[Callable[[Node], Payoffs]] = None,
         get_payoffs: Optional[Callable[[GameState], Payoffs]] = None,
-        ucb1_c_param: Optional[float] = 1.0,
+        ucb1_c_param: Optional[float] = math.sqrt(2),
     ):
         super().__init__()
 
@@ -246,7 +280,9 @@ class InformationSetMCTS(Agent):
         self._tree_policy = (
             tree_policy
             if tree_policy
-            else lambda node, n, p: self.UCB1_selection(node, n, p, c=ucb1_c_param)
+            else lambda node, hands, n, p: self.UCB1_selection(
+                node, hands, n, p, c=ucb1_c_param
+            )
         )
         self._rollout = rollout if rollout else self._random_walk
 
@@ -262,15 +298,20 @@ class InformationSetMCTS(Agent):
 
         return internal_get_payoffs
 
-    def UCB1_selection(self, node: Node, total_n: int, player: int, c=1.0) -> Node:
-        return max(node.children, key=lambda n: UCB1(n, total_n, player, c))
+    def UCB1_selection(
+        self, node: Node, sampled_hands: Hands, total_n: int, player: int, c=1.0
+    ) -> Node:
+        return max(
+            node.children_compatible_with_sample(sampled_hands),
+            key=lambda n: UCB1(n, total_n, player, c),
+        )
 
     def _random_walk(self, node: Node) -> Payoffs:
         if node.is_terminal:
-            return self._get_payoffs(node.state)
+            return node.W
 
         sim = GameSim(self._rule)
-        sim.init_from_state(node.state)
+        sim.init_from_state(node.state)  # TODO
 
         while not sim.is_done():
             card = np.random.choice(
@@ -298,15 +339,17 @@ class InformationSetMCTS(Agent):
         i = 0
         while time.time() < time_end:
             i += 1
-            self.mcts(node, i)
+            self.mcts(node)
 
         self._logger.debug("Explored %i nodes in %.3f seconds", i, time_budget)
         return max(node.children, key=lambda n: n.N).last_played_card
 
-    def _selection(self, node: Node, total_plays: int) -> Node:
+    def _selection(self, node: Node, sampled_hands: Hands, total_plays: int) -> Node:
         next_node = node
         while not next_node.is_leaf and next_node.fully_expanded:
-            next_node = self._tree_policy(next_node, total_plays, node.player)
+            next_node = self._tree_policy(
+                next_node, sampled_hands, total_plays, node.player
+            )
 
         assert (
             next_node.is_leaf or not next_node.fully_expanded
@@ -336,24 +379,33 @@ class InformationSetMCTS(Agent):
         if node.children is None:
             node.children = []
         node.children.append(next_node)
+        node.expanded_for.add(sampled_hands)
 
         return next_node
 
-    def _backpropagation(self, node: Node, payoffs: Payoffs):
+    def _backpropagation(self, node: Node, payoffs: Payoffs, sampled_hands: Hands):
         parent = node
         while parent is not None:
+            for child in parent.children_compatible_with_sample(sampled_hands):
+                # update count how many times the parent was visited and this node was available
+                child.parentNWhenAvailable += 1
+
             parent.N += 1
+            if sampled_hands not in parent:
+                parent.Ns[sampled_hands] = 1
+            else:
+                parent.Ns[sampled_hands] += 1
             parent.W += payoffs
             parent = parent.parent
 
     def _sample_information_set(self, node: Node):
         return node.information_set.get_random_hand()
 
-    def mcts(self, node: Node, total_plays: int):
+    def mcts(self, node: Node):
         assert not node.is_terminal, "Started mcts from terminal node"
 
         sampled_hands = self._sample_information_set(node)
-        next_node = self._selection(node, sampled_hands, total_plays)
+        next_node = self._selection(node, sampled_hands, node.parentNWhenAvailable)
         next_node = self._expansion(next_node, sampled_hands)
         payoffs = self._rollout(next_node)
-        self._backpropagation(next_node, payoffs)
+        self._backpropagation(next_node, payoffs, sampled_hands)
