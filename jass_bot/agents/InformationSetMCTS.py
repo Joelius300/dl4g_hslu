@@ -113,35 +113,6 @@ class InformationSetMCTS(Agent):
         Search tree node. All the nodes in the tree are from the view of the root node player.
         """
 
-        N: int
-        """Number of simulations (random walks) started from this node."""
-        Ns: dict[InformationSetMCTS.Hands, int]
-        """Number of simulations (random walks) started from this node WITH A CERTAIN HAND SAMPLE."""
-        ParentNWhenAvailable: int
-        """
-        Number of simulations (random walks) stared from the PARENT NODE, WHEN THIS NODE WAS AN
-        AVAILABLE CHILD (compatible with the sampled hand).
-        """
-        W: Payoffs
-        """Accumulated payoff vectors (one component for each team)."""
-        expanded_for: set[InformationSetMCTS.Hands]
-        """All the hands this node has been expanded for."""
-
-        cards_played_so_far: list[int]
-        """All the cards played so far to get to this state."""
-        information_set: InformationSetMCTS.InformationSet
-        """Information set from the POV of the root node player."""
-        current_trick: np.ndarray
-        """Current trick in the game."""
-        trump: int
-        """Trump of the game."""
-
-        """Current game state"""
-        parent: Optional[InformationSetMCTS.Node]
-        """Parent node"""
-        children: Optional[list[InformationSetMCTS.Node]]
-        """Nodes that are possible to reach from here by playing one of the valid actions."""
-
         def __init__(
             self,
             cards_played_so_far: list[int],
@@ -153,26 +124,40 @@ class InformationSetMCTS(Agent):
             parent: Optional[InformationSetMCTS.Node],
         ):
             self.N = 0
+            """Number of simulations (random walks) started from this node."""
             self.Ns = dict()
+            """Number of simulations (random walks) started from this node WITH A CERTAIN HAND SAMPLE."""
             self.W = np.zeros(2)
+            """Accumulated payoff vectors (one component for each team)."""
             self.expanded_for = set()
+            """All the hands this node has been expanded for."""
             self.cards_played_so_far = cards_played_so_far
+            """All the cards played so far to get to this state."""
             self.information_set = information_set
+            """Information set from the POV of the root node player."""
             self.current_trick = current_trick
             self.nr_cards_in_trick = nr_card_in_trick
             self.player = player
             self.trump = trump
             self.parent = parent
-            if self.parent:
+            self.children = None
+            """Nodes that are possible to reach from here by playing one of the valid actions."""
+
+            self.parentNWhenAvailable = 0
+            """
+            Number of simulations (random walks) stared from the PARENT NODE, WHEN THIS NODE WAS AN
+            AVAILABLE CHILD (compatible with the sampled hand).
+            """
+            if parent:
                 # initialized to the parent N and updated in backprop
-                self.parentNWhenAvailable = self.parent.N
+                self.parentNWhenAvailable = parent.N
 
         @property
         def is_terminal(self):
             """Is this node at the end of a game (no more valid moves)."""
             return self.cards_played_so_far == 36
 
-        def expanded_for(self, sampled_hands: InformationSetMCTS.Hands):
+        def is_expanded_for(self, sampled_hands: InformationSetMCTS.Hands):
             return sampled_hands in self.expanded_for
             # return self._remaining_cards is not None and len(self._remaining_cards) == 0
 
