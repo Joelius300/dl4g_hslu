@@ -110,7 +110,7 @@ class CheatingMCTS(AgentCheating):
         tree_policy: Optional[Callable[[Node, int, int], Node]] = None,
         rollout: Optional[Callable[[Node], Payoffs]] = None,
         get_payoffs: Optional[Callable[[GameState], Payoffs]] = None,
-        ucb1_c_param: Optional[float] = 1.0,
+        ucb1_c_param: Optional[float] = math.sqrt(2),
     ):
         super().__init__()
 
