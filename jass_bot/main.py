@@ -4,6 +4,7 @@ import sys
 from typing import Callable
 
 from agents.CheatingMCTS import CheatingMCTS
+from agents.InformationSetMCTS import InformationSetMCTS
 from agents.alphabeta_agent import AlphaBetaAgent
 from agents.game_tree_container import GameTreeContainer
 from agents.minimax_agent import MiniMaxAgent
@@ -71,4 +72,5 @@ if __name__ == "__main__":
     # tournament_ABAB(lambda: AlphaBetaAgent(tree_container, depth=3), lambda: MiniMaxAgent(tree_container, depth=1), n_games=30)
     # test_case_valid_card()
     # print(count_colors(get_cards_encoded([DA, DQ, D6, S10, S7, C9])))
-    tournament_ABAB(lambda: CheatingMCTS(timebudget=0.1), AgentCheatingRandomSchieber, n_games=100)
+    # tournament_ABAB(lambda: CheatingMCTS(timebudget=0.1), AgentCheatingRandomSchieber, n_games=100)
+    tournament_ABAB(lambda: InformationSetMCTS(timebudget=0.02), AgentRandomSchieber, n_games=1)

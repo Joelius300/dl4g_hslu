@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import itertools
 import logging
 import math
 import time
 import random
-from typing import Callable, Optional, Iterable, Self
+from typing import Callable, Optional, Iterable, Self, Generator
 
 import numpy as np
 
@@ -43,12 +44,63 @@ def hand_consistent_with_played_card(hand: np.ndarray, played_card: int, player:
     return hand[player][played_card] == 0
 
 
+def generate_information_set(hand: np.ndarray, played_cards: list[int], player: int):
+    return InformationSetMCTS.InformationSet(
+        generate_all_possible_hands(hand, played_cards, player)
+    )
+
+
+def generate_all_possible_hands(
+    hand: np.ndarray, played_cards: list[int], player: int
+) -> Generator[InformationSetMCTS.Hands]:
+    # this thing looks incredibly slow..
+    all_cards = set(range(36))
+    played_cards = set(played_cards)
+    hand_cards = set(np.flatnonzero(hand))
+    remaining_cards = all_cards - played_cards - hand_cards
+
+    cards_per_hand_min, n_rest = divmod(len(remaining_cards), 3)
+
+    hand_indices = [i for i in range(4) if i != player]
+
+    PAD_VALUE = -1000
+    for hands_perm in itertools.permutations(
+        (
+            comb
+            for comb in itertools.combinations(
+                itertools.chain(remaining_cards, [PAD_VALUE] * n_rest),
+                cards_per_hand_min + 1,
+            )
+            if sum(comb) > PAD_VALUE
+        ),
+        3,
+    ):
+        # iterates over all possible permutations of 3 hands where each hand is an n-combination containing
+        # the remaining cards without overlap.
+        # it's padded so that will result in a few combinations where there are multiple of those pad-elements in
+        # one hand / combination. these need to be filtered out, which is done by checking the sum.
+        # For 0 pad elements, the sum will be > 0, for 1 it will be > PAD_VALUE, for n it will be > PAD_VALUE * n.
+        # you could also truncate the sequence instead of padding then permutate the remaining
+        # elements on top of every hand.
+        hands = np.empty((4, 36), dtype=int)
+        hands[player] = hand
+        for i, h in enumerate(hands_perm):
+            hands[hand_indices[i]] = get_cards_encoded(list(h))
+
+        yield InformationSetMCTS.Hands(hands)
+
+
 # @formatter:off
 # fmt: off
 # 144 (4*36) prime numbers for hands-hashing
-PRIMES = np.array([2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421, 431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503, 509, 521, 523, 541, 547, 557, 563, 569, 571, 577, 587, 593, 599, 601, 607, 613, 617, 619, 631, 641, 643, 647, 653, 659, 661, 673, 677, 683, 691, 701, 709, 719, 727, 733, 739, 743, 751, 757, 761, 769, 773, 787, 797, 809, 811, 821, 823, 827])
+PRIMES = np.array([2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421, 431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503, 509, 521, 523, 541, 547, 557, 563, 569, 571, 577, 587, 593, 599, 601, 607, 613, 617, 619, 631, 641, 643, 647, 653, 659, 661, 673, 677, 683, 691, 701, 709, 719, 727, 733, 739, 743, 751, 757, 761, 769, 773, 787, 797, 809, 811, 821, 823, 827], dtype=int)
 # fmt: on
 # @formatter:on
+
+
+def hash_hand(hand: np.ndarray):
+    assert hand.shape == (36,), "Hand is not one-hot encoded 36 elements long"
+    return np.prod(PRIMES[:36] * hand)
 
 
 class InformationSetMCTS(Agent):
@@ -68,16 +120,16 @@ class InformationSetMCTS(Agent):
             return self.hands.__contains__(key)
 
         def __repr__(self):
-            self.hands.__repr__()
+            return self.hands.__repr__()
 
         def __str__(self):
-            self.hands.__str__()
+            return self.hands.__str__()
 
         def __eq__(self, other):
             return np.array_equal(self.hands, other.hands)
 
         def __hash__(self):
-            return np.prod(PRIMES * np.ravel(self.hands))
+            return int(np.prod(PRIMES * np.ravel(self.hands), dtype=int))
 
         def without_card(self, player: int, card: int):
             cloned = np.copy(self.hands)
@@ -89,7 +141,8 @@ class InformationSetMCTS(Agent):
 
     class InformationSet:
         def __init__(self, possible_hands: Iterable[InformationSetMCTS.Hands]):
-            self.possible_hands = list(possible_hands)
+            # self.possible_hands = list(possible_hands)
+            self.possible_hands = list(itertools.islice(possible_hands, 10))
             """
             List of hands where a hand is a 4x36 array that encodes in the hands of the 4 players.
             """
@@ -192,7 +245,10 @@ class InformationSetMCTS(Agent):
         def children_compatible_with_sample(
             self, sampled_hands: InformationSetMCTS.Hands
         ) -> Iterable[InformationSetMCTS.Node]:
-            raise NotImplementedError()
+            # maybe the blanking out part is already fulfilled by the process of
+            # deriving hands for the information set where only those hands
+            # can be transformed that have the card that's supposed to be played.
+            return self.children
 
         def get_valid_cards_for_sampled_state(
             self, rule: GameRule, sampled_hands: InformationSetMCTS.Hands
@@ -214,7 +270,8 @@ class InformationSetMCTS(Agent):
             sim.state.nr_cards_in_trick = self.nr_cards_in_trick
             # write into, don't destroy references just in case
             np.copyto(sim.state.current_trick, self.current_trick)
-            rule.assert_invariants(sim.state)
+            # rule.assert_invariants(sim.state)
+            # there will most likely be some inconsistencies since the game is set up not from the beginning
 
             return sim
 
@@ -305,24 +362,28 @@ class InformationSetMCTS(Agent):
 
         return self._get_payoffs(sim.state)
 
-    def action_trump(self, state: GameState) -> int:
-        return graf.graf_trump_selection(observation_from_state(state))
+    def action_trump(self, observation: GameObservation) -> int:
+        return graf.graf_trump_selection(observation)
 
-    def action_play_card(self, state: GameState) -> int:
-        return self.start_mcts_from_state(state, self.timebudget)
+    def action_play_card(self, observation: GameObservation) -> int:
+        return self.start_mcts_from_observation(observation, self.timebudget)
 
-    def start_mcts_from_state(self, state: GameState, timebudget: float):
-        played_cards_enc = state.tricks.ravel()[: state.nr_played_cards]
+    def start_mcts_from_observation(
+        self, observation: GameObservation, timebudget: float
+    ):
+        played_cards_enc = observation.tricks.ravel()[: observation.nr_played_cards]
         played_cards = convert_one_hot_encoded_cards_to_int_encoded_list(
             played_cards_enc
         )
         self._root = self.Node(
             played_cards,
-            generate_information_set(),
-            state.current_trick,
-            state.nr_cards_in_trick,
-            state.player,
-            state.trump,
+            generate_information_set(
+                observation.hand, played_cards, observation.player
+            ),
+            observation.current_trick,
+            observation.nr_cards_in_trick,
+            observation.player,
+            observation.trump,
             parent=None,
         )
 
@@ -332,12 +393,9 @@ class InformationSetMCTS(Agent):
         """Does MCTS during a certain time_budget (in seconds) from node and returns the best card to play."""
         time_end = time.time() + time_budget
 
-        i = 0
         while time.time() < time_end:
-            i += 1
             self.mcts(node)
 
-        self._logger.debug("Explored %i nodes in %.3f seconds", i, time_budget)
         return max(node.children, key=lambda n: n.N).last_played_card
 
     def _selection(self, node: Node, sampled_hands: Hands, total_plays: int) -> Node:
@@ -354,14 +412,17 @@ class InformationSetMCTS(Agent):
         return next_node
 
     def _expansion(self, node: Node, sampled_hands: Hands) -> Node:
-        assert not node.is_expanded_for(sampled_hands), "Fully expanded node in _expansion"
+        assert not node.is_expanded_for(
+            sampled_hands
+        ), "Fully expanded node in _expansion"
 
         # if selected node is terminal, take the payoff directly (rollout will end immediately)
         if node.is_terminal:
             return node
 
         # if selected has never been sampled before, do a rollout from it
-        if not node.has_been_sampled:
+        # if not node.has_been_sampled:
+        if not node.has_been_sampled_for(sampled_hands):
             return node
 
         # if selected has already been sampled (but isn't fully expanded), select
