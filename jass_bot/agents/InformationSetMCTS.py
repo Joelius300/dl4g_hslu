@@ -4,7 +4,7 @@ import logging
 import math
 import time
 import random
-from typing import Callable, Optional, Iterable
+from typing import Callable, Optional, Iterable, Self
 
 import numpy as np
 
@@ -140,7 +140,7 @@ class InformationSetMCTS(Agent):
             self.player = player
             self.trump = trump
             self.parent = parent
-            self.children = None
+            self.children: Optional[list[Self]] = None
             """Nodes that are possible to reach from here by playing one of the valid actions."""
 
             self.parentNWhenAvailable = 0
@@ -192,7 +192,7 @@ class InformationSetMCTS(Agent):
         def children_compatible_with_sample(
             self, sampled_hands: InformationSetMCTS.Hands
         ) -> Iterable[InformationSetMCTS.Node]:
-            raise NotImplementedError
+            raise NotImplementedError()
 
         def get_valid_cards_for_sampled_state(
             self, rule: GameRule, sampled_hands: InformationSetMCTS.Hands
@@ -247,8 +247,8 @@ class InformationSetMCTS(Agent):
         self,
         timebudget: float,
         rule: GameRule = None,
-        tree_policy: Optional[Callable[[Node, int, int], Node]] = None,
-        rollout: Optional[Callable[[Node], Payoffs]] = None,
+        tree_policy: Optional[Callable[[Node, Hands, int, int], Node]] = None,
+        rollout: Optional[Callable[[Node, Hands], Payoffs]] = None,
         get_payoffs: Optional[Callable[[GameState], Payoffs]] = None,
         ucb1_c_param: Optional[float] = math.sqrt(2),
     ):
@@ -291,12 +291,11 @@ class InformationSetMCTS(Agent):
             key=lambda n: UCB1(n, total_n, player, c),
         )
 
-    def _random_walk(self, node: Node) -> Payoffs:
+    def _random_walk(self, node: Node, hands: Hands) -> Payoffs:
         if node.is_terminal:
             return node.W
 
-        sim = GameSim(self._rule)
-        sim.init_from_state(node.state)  # TODO
+        sim = node.init_game_sim(self._rule, hands)
 
         while not sim.is_done():
             card = np.random.choice(
@@ -313,8 +312,20 @@ class InformationSetMCTS(Agent):
         return self.start_mcts_from_state(state, self.timebudget)
 
     def start_mcts_from_state(self, state: GameState, timebudget: float):
-        self._root = self.Node(state, -1, None)
-        # in theory, you could try to determine the last played card and parent, but it's irrelevant
+        played_cards_enc = state.tricks.ravel()[: state.nr_played_cards]
+        played_cards = convert_one_hot_encoded_cards_to_int_encoded_list(
+            played_cards_enc
+        )
+        self._root = self.Node(
+            played_cards,
+            generate_information_set(),
+            state.current_trick,
+            state.nr_cards_in_trick,
+            state.player,
+            state.trump,
+            parent=None,
+        )
+
         return self.start_mcts(self._root, timebudget)
 
     def start_mcts(self, node: Node, time_budget: float):
@@ -331,19 +342,19 @@ class InformationSetMCTS(Agent):
 
     def _selection(self, node: Node, sampled_hands: Hands, total_plays: int) -> Node:
         next_node = node
-        while not next_node.is_leaf and next_node.fully_expanded:
+        while not next_node.is_leaf and next_node.is_expanded_for(sampled_hands):
             next_node = self._tree_policy(
                 next_node, sampled_hands, total_plays, node.player
             )
 
-        assert (
-            next_node.is_leaf or not next_node.fully_expanded
+        assert next_node.is_leaf or not next_node.is_expanded_for(
+            sampled_hands
         ), "selected node is not leaf or fully_expanded"
 
         return next_node
 
     def _expansion(self, node: Node, sampled_hands: Hands) -> Node:
-        assert not node.fully_expanded, "Fully expanded node in _expansion"
+        assert not node.is_expanded_for(sampled_hands), "Fully expanded node in _expansion"
 
         # if selected node is terminal, take the payoff directly (rollout will end immediately)
         if node.is_terminal:
@@ -392,5 +403,5 @@ class InformationSetMCTS(Agent):
         sampled_hands = self._sample_information_set(node)
         next_node = self._selection(node, sampled_hands, node.parentNWhenAvailable)
         next_node = self._expansion(next_node, sampled_hands)
-        payoffs = self._rollout(next_node)
+        payoffs = self._rollout(next_node, sampled_hands)
         self._backpropagation(next_node, payoffs, sampled_hands)
