@@ -5,7 +5,9 @@ import math
 import sys
 import time
 import random
-from typing import Callable, Optional, Self, Union
+from typing import Callable, Optional, Self, Union, Set, Dict
+
+import numpy as np
 
 from heuristics import graf
 from jass.agents.agent import Agent
@@ -75,8 +77,6 @@ class ISMCTS(Agent):
             self.children: Optional[list[Self]] = None
             """Nodes that are possible to reach from here by playing one of the valid actions."""
 
-            self._remaining_cards: Optional[List[int]] = None
-            """The cards that can be played from this state on."""
 
         @property
         def is_terminal(self):
@@ -101,19 +101,6 @@ class ISMCTS(Agent):
         def is_leaf(self):
             # return self.children is None or len(self.children) == 0
             return not self.children
-
-        def remaining_cards(self, rule: GameRule) -> list[int]:
-            """Gets the valid cards that have never been played from this node."""
-            # assumption: always called with the same rule!
-            if self._remaining_cards is None:
-                assert self.known_state.player_view == self.known_state.player, "Precon for get_valid_card_from_obs fail"
-                self._remaining_cards = (
-                    convert_one_hot_encoded_cards_to_int_encoded_list(
-                        rule.get_valid_cards_from_obs(self.known_state)
-                    )
-                )
-
-            return self._remaining_cards
 
         def is_child_compatible_with_sample(self, sampled_state: GameState):
             # this child (this node as child of parent) is compatible with
@@ -303,7 +290,9 @@ class ISMCTS(Agent):
 
         # if selected has already been sampled (but isn't fully expanded), select
         # random valid move and add a branch from this node. Then do a rollout from there.
-        remaining_cards = node.remaining_cards(self._rule)
+        remaining_cards = convert_one_hot_encoded_cards_to_int_encoded_list(
+            self._rule.get_valid_cards_from_state(sampled_state)
+        )
         if len(remaining_cards) == 1:
             i = 0
         else:
