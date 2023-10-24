@@ -140,7 +140,7 @@ class ISMCTS(Agent):
             assert sampled_state.forehand == self.known_state.forehand
             assert sampled_state.declared_trump == self.known_state.declared_trump
             assert sampled_state.trump == self.known_state.trump
-            assert sampled_state.nr_played_cards == self.known_state.nr_played_cards + 1
+            assert sampled_state.nr_played_cards + 1 == self.known_state.nr_played_cards
 
             return sampled_state.hands[self.last_player, self.last_played_card] == 1
 
@@ -253,12 +253,9 @@ class ISMCTS(Agent):
         return max(node.children, key=lambda n: n.N).last_played_card
 
     def _sample_state(self, node: Node) -> GameState:
-        played_cards_enc = node.known_state.tricks.ravel()[
+        played_cards = node.known_state.tricks.ravel()[
             : node.known_state.nr_played_cards
         ]
-        played_cards = convert_one_hot_encoded_cards_to_int_encoded_list(
-            played_cards_enc
-        )
         played_cards = set(played_cards)
         hand_cards = set(np.flatnonzero(node.known_state.hand))
         remaining_cards = ALL_CARDS - played_cards - hand_cards
@@ -284,7 +281,7 @@ class ISMCTS(Agent):
             # index from behind because the size of the chunks is descending.
             # this way the first player (start player), will get the first
             # of the smaller chunks, then the next, etc.
-            hand_indices = distributed_hands[-(p - skip_correction)]
+            hand_indices = distributed_hands[-((i + 1) - skip_correction)]
             hands[p, hand_indices] = 1
 
             # for the players that have already played (i < nr_card_in_trick)
