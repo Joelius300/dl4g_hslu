@@ -106,6 +106,7 @@ class ISMCTS(Agent):
             """Gets the valid cards that have never been played from this node."""
             # assumption: always called with the same rule!
             if self._remaining_cards is None:
+                assert self.known_state.player_view == self.known_state.player, "Precon for get_valid_card_from_obs fail"
                 self._remaining_cards = (
                     convert_one_hot_encoded_cards_to_int_encoded_list(
                         rule.get_valid_cards_from_obs(self.known_state)
