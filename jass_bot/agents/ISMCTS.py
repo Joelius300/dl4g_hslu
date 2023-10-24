@@ -286,6 +286,7 @@ class ISMCTS(Agent):
 
         # if selected has already been sampled (but isn't fully expanded), select
         # random valid move and add a branch from this node. Then do a rollout from there.
+        # NEEDS TO BE STORED IN THE NODE; SEE BELOW
         remaining_cards = convert_one_hot_encoded_cards_to_int_encoded_list(
             self._rule.get_valid_cards_from_state(sampled_state)
         )
@@ -294,6 +295,18 @@ class ISMCTS(Agent):
         else:
             i = random.randint(0, len(remaining_cards) - 1)
 
+        # TODO
+        # this is what I missed before I think. The node still needs to store what remaining cards there are to play.
+        # for the nodes of the root player, these edges to the next nodes are just one per valid action, which
+        # can be queried from the known state. For the nodes of the unknown players however, there is one action
+        # for all possible valid cards that the person _could_ still hold, which luckily is a maximum of 36
+        # but I'm not sure how to calculate those because of stuff like Untertrumpfe etc.
+        # I think every node that isn't a node with perfect information, will start with all the remaining cards
+        # and then in here a valid one is selected by combining the return of get_valid_cards from the sample state
+        # and the remaining cards that the node has not yet played.
+        # to check if a node is fully expanded though, it will probably still need to take into account the current
+        # state sample and check if there are no more remaining cards, that are valid to play in the currently sampled
+        # state. Not sure how to handle has_been_sampled though, but maybe that will just work with N directly.
         sampled_card = remaining_cards.pop(i)
 
         game_sim = GameSim(self._rule)
