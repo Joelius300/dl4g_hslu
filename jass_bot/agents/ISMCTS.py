@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import math
+import sys
 import time
 import random
 from typing import Callable, Optional, Self, Union
@@ -28,12 +29,29 @@ def point_div_by_norm(state: GameObservation | GameState):
     return state.points / np.linalg.norm(state.points)
 
 
-# could also just use 1 and 0 for the winning and losing team, without using points directly
-
-
 def UCB1(node: ISMCTS.Node, total_n: int, player: int, c=1.0) -> float:
     payoffs: float = node.W[team[player]]
     return (payoffs / node.N) + c * math.sqrt(math.log(total_n) / node.N)
+
+
+def _assert_sample_validity(node: ISMCTS.Node, sampled_state: GameState):
+    assert node.known_state.forehand == sampled_state.forehand
+    assert node.known_state.declared_trump == sampled_state.declared_trump
+    assert node.known_state.dealer == sampled_state.dealer
+    assert node.known_state.trump == sampled_state.trump
+    assert node.known_state.player == sampled_state.player
+    assert node.known_state.nr_played_cards == sampled_state.nr_played_cards
+    assert node.known_state.nr_tricks == sampled_state.nr_tricks
+    assert node.known_state.nr_cards_in_trick == sampled_state.nr_cards_in_trick
+    assert np.array_equal(node.known_state.tricks, sampled_state.tricks)
+    assert np.array_equal(node.known_state.trick_winner, sampled_state.trick_winner)
+    assert np.array_equal(node.known_state.trick_points, sampled_state.trick_points)
+    assert np.array_equal(node.known_state.points, sampled_state.points)
+    assert np.array_equal(
+        node.known_state.trick_first_player, sampled_state.trick_first_player
+    )
+    assert np.array_equal(node.known_state.hand, sampled_state.hands[node.root_player])
+    assert node.known_state == observation_from_state(sampled_state, node.root_player)
 
 
 class ISMCTS(Agent):
@@ -46,19 +64,30 @@ class ISMCTS(Agent):
             self,
             known_state: GameObservation,
             last_played_card: int,
+            last_player: int,
             root_player: int,
             parent: Optional[ISMCTS.Node],
         ):
             self.N = 0
-            """Number of simulations (random walks) started from this node."""
+            """Number of visits to this node."""
+            self.parentN = 0
+            """Number of visits to the parent node WHEN THIS NODE WAS A COMPATIBLE CHILD."""
             self.W = np.zeros(2)
             """Accumulated payoff vectors (one component for each team)."""
 
             self.last_played_card = last_played_card
             """The last card that was played to get to this state."""
+            self.last_player = last_player
+            """The player that played the last card to get to this state."""
             self.known_state = known_state
-            """The known state of this node from the view of the root player."""
+            """
+            The known state of this node from the view of the root player.
+            For subsequent nodes, it's derived from playing a sampled state,
+            which could potentially contain uncertain information I think.
+            """
             self.root_player = root_player
+            """The player of the root game state. All nodes have to be this players POV."""
+            assert known_state.player_view == root_player, "Observation is not root POV"
 
             self.parent = parent
             self.children: Optional[list[Self]] = None
@@ -101,6 +130,27 @@ class ISMCTS(Agent):
 
             return self._remaining_cards
 
+        def is_child_compatible_with_sample(self, sampled_state: GameState):
+            # this child (this node as child of parent) is compatible with
+            # the sample (sampled from parent) if and only if
+            # the card that was played to get to this state, was in the
+            # hand of the correct person in the sample.
+            # a lot of other things can be assumed (here asserted)
+            assert sampled_state.dealer == self.known_state.dealer
+            assert sampled_state.forehand == self.known_state.forehand
+            assert sampled_state.declared_trump == self.known_state.declared_trump
+            assert sampled_state.trump == self.known_state.trump
+            assert sampled_state.nr_played_cards == self.known_state.nr_played_cards + 1
+
+            return sampled_state.hands[self.last_player, self.last_played_card] == 1
+
+        def get_children_consistent_with_sample(self, sampled_state: GameState):
+            if self.children is None:
+                raise ValueError("Children are None, not explored?")
+
+            return (child for child in self.children if child.is_child_compatible_with_sample(sampled_state))
+
+
     def __init__(
         self,
         timebudget: float,
@@ -123,7 +173,9 @@ class ISMCTS(Agent):
         self._tree_policy = (
             tree_policy
             if tree_policy
-            else lambda node, n, p: self.UCB1_selection(node, n, p, c=ucb1_c_param)
+            else lambda node, sample, p: self.UCB1_selection(
+                node, sample, p, c=ucb1_c_param
+            )
         )
         self._rollout = rollout if rollout else self._random_walk
 
@@ -141,8 +193,23 @@ class ISMCTS(Agent):
 
         return internal_get_payoffs
 
-    def UCB1_selection(self, node: Node, total_n: int, player: int, c=1.0) -> Node:
-        return max(node.children, key=lambda n: UCB1(n, total_n, player, c))
+    def UCB1_selection(
+        self, node: Node, sampled_state: GameState, player: int, c=1.0
+    ) -> Node:
+        # The number of parent visits when this node was available is updated here to avoid
+        # multiple calls to the filter function which selects only compatible children.
+        # Would be more "clean" if it were done in backprop but this should be more efficient.
+        ucb_max = -sys.maxsize
+        best_child = None
+        for n in node.get_children_consistent_with_sample(sampled_state):
+            ucb = UCB1(n, n.parentN, player, c)
+            if ucb > ucb_max:
+                ucb_max = ucb
+                best_child = n
+
+            n.parentN += 1
+
+        return best_child
 
     def _random_walk(self, node: Node, sampled_state: GameState) -> Payoffs:
         if node.is_terminal:
@@ -166,7 +233,13 @@ class ISMCTS(Agent):
         return self.start_mcts_from_obs(observation, self.timebudget)
 
     def start_mcts_from_obs(self, state: GameObservation, timebudget: float):
-        self._root = self.Node(state, -1, None)
+        self._root = self.Node(
+            state,
+            last_played_card=-1,
+            last_player=-1,
+            root_player=state.player,
+            parent=None,
+        )
         # in theory, you could try to determine the last played card and parent, but it's irrelevant
         return self.start_mcts(self._root, timebudget)
 
@@ -179,14 +252,55 @@ class ISMCTS(Agent):
 
         return max(node.children, key=lambda n: n.N).last_played_card
 
-    def _selection(self, node: Node, total_plays: int) -> Node:
-        # TODO
-        # Total play now has to be the number of total plays the parent node has
-        # had _when_ this node here has been available to be picked.
+    def _sample_state(self, node: Node) -> GameState:
+        played_cards_enc = node.known_state.tricks.ravel()[
+            : node.known_state.nr_played_cards
+        ]
+        played_cards = convert_one_hot_encoded_cards_to_int_encoded_list(
+            played_cards_enc
+        )
+        played_cards = set(played_cards)
+        hand_cards = set(np.flatnonzero(node.known_state.hand))
+        remaining_cards = ALL_CARDS - played_cards - hand_cards
+        remaining_cards = np.array(list(remaining_cards))
+        np.random.shuffle(remaining_cards)
+        distributed_hands = np.array_split(remaining_cards, 3)
+
+        hands = np.zeros(shape=[4, 36], dtype=np.int32)
+        hands[node.root_player, :] = node.known_state.hand
+
+        skip_correction = 0
+        start_player = node.known_state.trick_first_player[
+            node.known_state.nr_tricks
+        ]
+
+        for i in range(4):
+            p = (i + start_player) % 4
+            if p == node.root_player:
+                # must shift after root player to not override their hand
+                skip_correction = 1
+                continue
+
+            # index from behind because the size of the chunks is descending.
+            # this way the first player (start player), will get the first
+            # of the smaller chunks, then the next, etc.
+            hand_indices = distributed_hands[-(p - skip_correction)]
+            hands[p, hand_indices] = 1
+
+            # for the players that have already played (i < nr_card_in_trick)
+            # the number of cards should be floor(remaining_cards / 3)
+            # and for those who haven't (i >= nr_cards_in_trick) it should be 1 more
+            assert len(hand_indices) == len(remaining_cards) // 3 + (
+                0 if i < node.known_state.nr_cards_in_trick else 1
+            )
+
+        return state_from_observation(node.known_state, hands)
+
+    def _selection(self, node: Node, sampled_state: GameState) -> Node:
         next_node = node
         while not next_node.is_leaf and next_node.fully_expanded:
             next_node = self._tree_policy(
-                next_node, total_plays, node.known_state.player
+                next_node, sampled_state, node.known_state.player
             )
 
         assert (
@@ -222,9 +336,17 @@ class ISMCTS(Agent):
 
         next_node = ISMCTS.Node(
             observation_from_state(
+                # removes the information we can't know, like
+                # the hands of the others. However, it still
+                # leaks information because it keeps who won
+                # the last trick -> order of players.
+                # may not be an issue because incompatible ones are filtered anyway.
                 game_sim.state,
+                node.root_player,
             ),
             sampled_card,
+            node.known_state.player,
+            node.root_player,  # root player stays
             node,
         )
         if node.children is None:
@@ -239,11 +361,15 @@ class ISMCTS(Agent):
             parent.N += 1
             parent.W += payoffs
             parent = parent.parent
+            # parentN is already updated in UCB1 selection
 
     def mcts(self, node: Node):
         assert not node.is_terminal, "Started mcts from terminal node"
-        sampled_state = self.sample_state(node)
-        next_node = self._selection(node, total_plays)
+        sampled_state = self._sample_state(node)
+
+        _assert_sample_validity(node, sampled_state)
+
+        next_node = self._selection(node, sampled_state)
         next_node = self._expansion(next_node, sampled_state)
         payoffs = self._rollout(next_node, sampled_state)
         self._backpropagation(next_node, payoffs)
