@@ -26,11 +26,6 @@ def points_div_by_max(state: GameObservation | GameState):
     return state.points / np.max(state.points)
 
 
-def point_div_by_norm(state: GameObservation | GameState):
-    # sum of all payoffs = 1
-    return state.points / np.linalg.norm(state.points)
-
-
 def UCB1(node: ISMCTS.Node, total_n: int, player: int, c=1.0) -> float:
     payoffs: float = node.W[team[player]]
     return (payoffs / node.N) + c * math.sqrt(math.log(total_n) / node.N)
@@ -39,7 +34,39 @@ def UCB1(node: ISMCTS.Node, total_n: int, player: int, c=1.0) -> float:
 ALL_CARDS = set(range(36))
 
 
+def hash_hands(hands: np.ndarray):
+    assert hands.shape == (4, 36), "Hand is not one-hot encoded 4x36 elements long"
+    return hash(tuple(np.flatnonzero(hands)))
+
+
 class ISMCTS(Agent):
+    class Hands:
+        """Hashable container for hands of cards. Do not mutate!"""
+
+        def __init__(self, hands: np.ndarray):
+            self.hands = hands
+
+        def __len__(self):
+            return self.hands.__len__()
+
+        def __getitem__(self, key):
+            return self.hands.__getitem__(key)
+
+        def __contains__(self, key):
+            return self.hands.__contains__(key)
+
+        def __repr__(self):
+            return self.hands.__repr__()
+
+        def __str__(self):
+            return self.hands.__str__()
+
+        def __eq__(self, other):
+            return np.array_equal(self.hands, other.hands)
+
+        def __hash__(self):
+            return hash_hands(self.hands)
+
     class Node:
         """
         Search tree node. All the nodes in the tree are from the view of the root node player.
@@ -55,6 +82,8 @@ class ISMCTS(Agent):
         ):
             self.N = 0
             """Number of visits to this node."""
+            self.N_for: Dict[ISMCTS.Hands, int] = dict()
+            """Number of visits to this node for a certain hand sample."""
             self.parentN = 1  # initialized to 1 because it's been visited at conception, not sure that's correct
             """Number of visits to the parent node WHEN THIS NODE WAS A COMPATIBLE CHILD."""
             self.W = np.zeros(2)
@@ -78,21 +107,21 @@ class ISMCTS(Agent):
             self.children: Optional[list[Self]] = None
             """Nodes that are possible to reach from here by playing one of the valid actions."""
 
+            self._expanded_for: Set[ISMCTS.Hands] = set()
 
         @property
         def is_terminal(self):
             """Is this node at the end of a game (no more valid moves)."""
             return self.known_state.nr_tricks == 9
 
-        @property
-        def fully_expanded(self):
-            return self._remaining_cards is not None and len(self._remaining_cards) == 0
+        def expanded_for(self, sampled_state: GameState):
+            return ISMCTS.Hands(sampled_state.hands) in self._expanded_for
 
-        @property
-        def has_been_sampled(self):
-            # return True  # idk man
-            # return False  # just to see what happens; if this should only return true for compatible state sampling it will in practice almost always be False
-            return self.N > 0
+        def add_expanded_for(self, sampled_state: GameState):
+            self._expanded_for.add(ISMCTS.Hands(sampled_state.hands))
+
+        def has_been_sampled_for(self, sampled_state: GameState):
+            return self.N_for.get(ISMCTS.Hands(sampled_state.hands), False)
 
         @property
         def is_root(self):
@@ -267,26 +296,26 @@ class ISMCTS(Agent):
 
     def _selection(self, node: Node, sampled_state: GameState) -> Node:
         next_node = node
-        while not next_node.is_leaf and next_node.fully_expanded:
+        while not next_node.is_leaf and next_node.expanded_for(sampled_state):
             next_node = self._tree_policy(
                 next_node, sampled_state, node.known_state.player
             )
 
-        assert (
-            next_node.is_leaf or not next_node.fully_expanded
+        assert next_node.is_leaf or not next_node.expanded_for(
+            sampled_state
         ), "selected node is not leaf or fully_expanded"
 
         return next_node
 
     def _expansion(self, node: Node, sampled_state: GameState) -> Node:
-        assert not node.fully_expanded, "Fully expanded node in _expansion"
+        assert not node.expanded_for(sampled_state), "Fully expanded node in _expansion"
 
         # if selected node is terminal, take the payoff directly (rollout will end immediately)
         if node.is_terminal:
             return node
 
         # if selected has never been sampled before, do a rollout from it
-        if not node.has_been_sampled:
+        if not node.has_been_sampled_for(sampled_state):
             return node
 
         # if selected has already been sampled (but isn't fully expanded), select
@@ -323,6 +352,7 @@ class ISMCTS(Agent):
         if node.children is None:
             node.children = []
         node.children.append(next_node)
+        node.add_expanded_for(sampled_state)
 
         return next_node
 
