@@ -36,6 +36,7 @@ def UCB1(node: ISMCTS.Node, total_n: int, player: int, c=1.0) -> float:
     return (payoffs / node.N) + c * math.sqrt(math.log(total_n) / node.N)
 
 
+ALL_CARDS = set(range(36))
 
 
 class ISMCTS(Agent):
