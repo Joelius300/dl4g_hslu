@@ -34,7 +34,7 @@ def point_div_by_norm(state: GameState):
 # could also just use 1 and 0 for the winning and losing team, without using points directly
 
 
-def UCB1(node: InformationSetMCTS.Node, total_n: int, player: int, c=1.0) -> float:
+def UCB1(node: InformationSetMCTSOvercomplicated.Node, total_n: int, player: int, c=1.0) -> float:
     # total_n must now be the number of times the parent was visited _AND_ node was available/valid for selection
     payoffs: float = node.W[team[player]]
     return (payoffs / node.N) + c * math.sqrt(math.log(total_n) / node.N)
@@ -45,14 +45,14 @@ def hand_consistent_with_played_card(hand: np.ndarray, played_card: int, player:
 
 
 def generate_information_set(hand: np.ndarray, played_cards: list[int], player: int):
-    return InformationSetMCTS.InformationSet(
+    return InformationSetMCTSOvercomplicated.InformationSet(
         generate_all_possible_hands(hand, played_cards, player)
     )
 
 
 def generate_all_possible_hands(
     hand: np.ndarray, played_cards: list[int], player: int
-) -> Generator[InformationSetMCTS.Hands]:
+) -> Generator[InformationSetMCTSOvercomplicated.Hands]:
     # this thing looks incredibly slow..
     all_cards = set(range(36))
     played_cards = set(played_cards)
@@ -87,7 +87,7 @@ def generate_all_possible_hands(
         for i, h in enumerate(hands_perm):
             hands[hand_indices[i]] = get_cards_encoded(list(h))
 
-        yield InformationSetMCTS.Hands(hands)
+        yield InformationSetMCTSOvercomplicated.Hands(hands)
 
 
 # @formatter:off
@@ -103,7 +103,7 @@ def hash_hand(hand: np.ndarray):
     return np.prod(PRIMES[:36] * hand)
 
 
-class InformationSetMCTS(Agent):
+class InformationSetMCTSOvercomplicated(Agent):
     class Hands:
         """Immutable but hashable container for hands of cards. Only mutate via functions that return new instances!"""
 
@@ -134,13 +134,13 @@ class InformationSetMCTS(Agent):
         def without_card(self, player: int, card: int):
             cloned = np.copy(self.hands)
             cloned[player, card] = 0
-            return InformationSetMCTS.Hands(cloned)
+            return InformationSetMCTSOvercomplicated.Hands(cloned)
 
         def has_card(self, player: int, card: int):
             return self.hands[player, card] == 1
 
     class InformationSet:
-        def __init__(self, possible_hands: Iterable[InformationSetMCTS.Hands]):
+        def __init__(self, possible_hands: Iterable[InformationSetMCTSOvercomplicated.Hands]):
             # self.possible_hands = list(possible_hands)
             self.possible_hands = list(itertools.islice(possible_hands, 10))
             """
@@ -156,7 +156,7 @@ class InformationSetMCTS(Agent):
                 if hand.has_card(player, card)
             }
 
-            return InformationSetMCTS.InformationSet(hands_raw)
+            return InformationSetMCTSOvercomplicated.InformationSet(hands_raw)
 
         def get_random_hand(self):
             return random.choice(self.possible_hands)
@@ -169,12 +169,12 @@ class InformationSetMCTS(Agent):
         def __init__(
             self,
             cards_played_so_far: list[int],
-            information_set: InformationSetMCTS.InformationSet,
+            information_set: InformationSetMCTSOvercomplicated.InformationSet,
             current_trick: np.ndarray,
             nr_card_in_trick: int,
             player: int,
             trump: int,
-            parent: Optional[InformationSetMCTS.Node],
+            parent: Optional[InformationSetMCTSOvercomplicated.Node],
         ):
             self.N = 0
             """Number of simulations (random walks) started from this node."""
@@ -210,7 +210,7 @@ class InformationSetMCTS(Agent):
             """Is this node at the end of a game (no more valid moves)."""
             return self.cards_played_so_far == 36
 
-        def is_expanded_for(self, sampled_hands: InformationSetMCTS.Hands):
+        def is_expanded_for(self, sampled_hands: InformationSetMCTSOvercomplicated.Hands):
             return sampled_hands in self.expanded_for
             # return self._remaining_cards is not None and len(self._remaining_cards) == 0
 
@@ -218,7 +218,7 @@ class InformationSetMCTS(Agent):
         def has_been_sampled(self):
             return self.N > 0
 
-        def has_been_sampled_for(self, sampled_hands: InformationSetMCTS.Hands):
+        def has_been_sampled_for(self, sampled_hands: InformationSetMCTSOvercomplicated.Hands):
             was_sampled = sampled_hands in self.Ns
             assert (
                 not was_sampled or self.Ns[sampled_hands] > 0
@@ -243,15 +243,15 @@ class InformationSetMCTS(Agent):
             return self.cards_played_so_far[-1]
 
         def children_compatible_with_sample(
-            self, sampled_hands: InformationSetMCTS.Hands
-        ) -> Iterable[InformationSetMCTS.Node]:
+            self, sampled_hands: InformationSetMCTSOvercomplicated.Hands
+        ) -> Iterable[InformationSetMCTSOvercomplicated.Node]:
             # maybe the blanking out part is already fulfilled by the process of
             # deriving hands for the information set where only those hands
             # can be transformed that have the card that's supposed to be played.
             return self.children
 
         def get_valid_cards_for_sampled_state(
-            self, rule: GameRule, sampled_hands: InformationSetMCTS.Hands
+            self, rule: GameRule, sampled_hands: InformationSetMCTSOvercomplicated.Hands
         ):
             return rule.get_valid_cards(
                 sampled_hands[self.player],
@@ -261,7 +261,7 @@ class InformationSetMCTS(Agent):
             )
 
         def init_game_sim(
-            self, rule: GameRule, sampled_hands: InformationSetMCTS.Hands
+            self, rule: GameRule, sampled_hands: InformationSetMCTSOvercomplicated.Hands
         ):
             sim = GameSim(rule)
             sim.state.hands = sampled_hands.hands
@@ -278,8 +278,8 @@ class InformationSetMCTS(Agent):
         def play_card(
             self,
             rule: GameRule,
-            sampled_hands: InformationSetMCTS.Hands,
-            parent: InformationSetMCTS.Node,
+            sampled_hands: InformationSetMCTSOvercomplicated.Hands,
+            parent: InformationSetMCTSOvercomplicated.Node,
             card: int,
         ):
             """Plays a card and returns the node that follows from that play."""
@@ -290,7 +290,7 @@ class InformationSetMCTS(Agent):
             new_current_trick = sim.state.current_trick
             new_information_set = self.information_set.without_card(self.player, card)
 
-            return InformationSetMCTS.Node(
+            return InformationSetMCTSOvercomplicated.Node(
                 self.cards_played_so_far + [card],
                 new_information_set,
                 new_current_trick,
