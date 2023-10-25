@@ -200,16 +200,16 @@ class ISMCTS(Agent):
             if self._remaining_cards is None:
                 if self.known_state.player == self.root_player:
                     # we have perfect information
-                    self._remaining_cards = rule.get_valid_cards_from_obs(self.known_state)
+                    self._remaining_cards = rule.get_valid_cards_from_obs(self.known_state).copy()  # just to be sure...
                 else:
                     # imperfect information, just take all remaining cards
                     # the valid ones are filtered with every query
                     cards = _get_remaining_cards_in_play_from_obs(self.known_state)
-                    self._remaining_cards = get_cards_encoded(cards)
+                    self._remaining_cards = get_cards_encoded(cards)  # this 100% doens't need copy
 
             assert self._remaining_cards is not None, "No remaining cards"
 
-            valid_cards_in_sample = rule.get_valid_cards_from_state(sampled_state)
+            valid_cards_in_sample = rule.get_valid_cards_from_state(sampled_state).copy()  # just to be sure..
             valid_remaining_cards = self._remaining_cards & valid_cards_in_sample
             assert np.array_equal(
                 valid_remaining_cards.astype(bool),
@@ -362,7 +362,7 @@ class ISMCTS(Agent):
         distributed_hands = np.array_split(remaining_cards, 3)
 
         hands = np.zeros(shape=[4, 36], dtype=np.int32)
-        hands[node.root_player, :] = node.known_state.hand.copy()
+        hands[node.root_player, :] = node.known_state.hand.copy()  # copy just to be sure
 
         skip_correction = 0
         start_player = node.known_state.trick_first_player[node.known_state.nr_tricks]
@@ -396,7 +396,7 @@ class ISMCTS(Agent):
             # should not derive i from p due to order, just use next_player
             p = next_player[p]
 
-        return state_from_observation(node.known_state, hands)
+        return state_from_observation(node.known_state, hands).clone()  # copy just to be sure, can contain shallows
 
     def _selection(self, node: Node, sampled_state: GameState) -> Tuple[Node, GameState]:
         assert (
