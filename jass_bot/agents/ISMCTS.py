@@ -2,12 +2,8 @@ from __future__ import annotations
 
 import logging
 import math
-import sys
 import time
-import random
-from typing import Callable, Optional, Self, Union, Set, Dict, Tuple
-
-import numpy as np
+from typing import Callable, Optional, Self, Union, Tuple
 
 from heuristics import graf
 from jass.agents.agent import Agent
@@ -75,6 +71,19 @@ class ISMCTS(Agent):
             For subsequent nodes, it's derived from playing a sampled state,
             which could potentially contain uncertain information I think.
             """
+
+            num_card_in_hands_at_start_of_trick = 36 - (
+                known_state.nr_played_cards - known_state.nr_cards_in_trick
+            )
+            assert (
+                num_card_in_hands_at_start_of_trick % 4 == 0
+            ), "num_card_in_hands_at_start_of_trick is not divisible by 4"
+            cards_in_hand = num_cards_in_hand(known_state.hand)
+            assert cards_in_hand == num_card_in_hands_at_start_of_trick / 4 or (
+                cards_in_hand == (num_card_in_hands_at_start_of_trick / 4) - 1
+                and known_state.nr_cards_in_trick > 0
+            ), "Hand has invalid number of cards"
+
             self.root_player = root_player
             """The player of the root game state. All nodes have to be this players POV."""
             assert known_state.player_view == root_player, "Observation is not root POV"
@@ -234,7 +243,6 @@ class ISMCTS(Agent):
         self._logger = logging.getLogger(__name__)
 
         self.timebudget = timebudget
-        self._root = None
         self._rule = rule if rule else RuleSchieber()
         self._tree_policy = (
             tree_policy
@@ -286,15 +294,22 @@ class ISMCTS(Agent):
         return self.start_mcts_from_obs(observation, self.timebudget)
 
     def start_mcts_from_obs(self, state: GameObservation, timebudget: float):
-        self._root = self.Node(
+        last_card = (
+            state.get_card_played(state.nr_played_cards - 1)
+            if state.nr_played_cards > 0
+            else -1
+        )
+        last_player = next_player.index(state.player) if state.player >= 0 else -1
+
+        root = self.Node(
             state,
-            last_played_card=-1,
-            last_player=-1,
+            last_played_card=last_card,
+            last_player=last_player,
             root_player=state.player,
             parent=None,
         )
-        # in theory, you could try to determine the last played card and parent, but it's irrelevant
-        return self.start_mcts(self._root, timebudget)
+
+        return self.start_mcts(root, timebudget)
 
     def start_mcts(self, node: Node, time_budget: float):
         """Does MCTS during a certain time_budget (in seconds) from node and returns the best card to play."""
@@ -303,12 +318,40 @@ class ISMCTS(Agent):
         while time.time() < time_end:
             self.mcts(node)
 
+        # all the children must be valid here, since the root node has perfect information about move validity
         return max(node.children, key=lambda n: n.N).last_played_card
 
     def _sample_state(self, node: Node) -> GameState:
         remaining_cards = np.array(_get_remaining_cards_in_play_from_obs(node.known_state))
+        assert (
+            len(remaining_cards)
+            == 36 - num_cards_in_hand(node.known_state.hand) - node.known_state.nr_played_cards
+        ), "Remaining cards don't match known state"
+        assert node.known_state.player == node.root_player, "It's not root player's turn"
+
         np.random.shuffle(remaining_cards)
         distributed_hands = np.array_split(remaining_cards, 3)
+        num_cards_in_root_hand = num_cards_in_hand(node.known_state.hand)
+        most_card_in_non_root_hand = len(distributed_hands[0])
+        n_trick = node.known_state.nr_cards_in_trick
+
+        # schema: ROOT MAX SECOND THIRD | max, second, third are descending
+        if num_cards_in_root_hand == most_card_in_non_root_hand - 1:
+            # one less in root's hand than the max of the others
+            # could be 8999, 8998, 8988 so  1 <= n_trick <= 3
+            assert 1 <= n_trick <= 3, "Root has 1 less card than others but <1 or >3 in trick"
+        elif num_cards_in_root_hand == most_card_in_non_root_hand:
+            # equal to max
+            # could be 9999, 9998, 9988 so  0 <= n_trick <= 2
+            assert 0 <= n_trick <= 2, "Root has same nr cards as others but >2 in trick"
+        elif num_cards_in_root_hand == most_card_in_non_root_hand + 1:
+            # one more than max
+            # could be 9888, so n_trick == 3
+            assert n_trick == 3, "Root has 1 card more than others but not 3 in trick"
+        else:
+            # difference > 1 -> cannot happen
+            # things like 7988 are illegal, root played one too many and some other player one too few
+            assert False, "More than 1 difference in hand sizes"
 
         hands = np.zeros(shape=[4, 36], dtype=np.int32)
         hands[node.root_player, :] = node.known_state.hand
@@ -409,19 +452,6 @@ class ISMCTS(Agent):
         # random valid move and add a branch from this node. Then do a rollout from there.
         sampled_card = node.pop_random_valid_card(self._rule, sampled_state)
 
-        # TODO
-        # this is what I missed before I think. The node still needs to store what remaining cards there are to play.
-        # for the nodes of the root player, these edges to the next nodes are just one per valid action, which
-        # can be queried from the known state. For the nodes of the unknown players however, there is one action
-        # for all possible valid cards that the person _could_ still hold, which luckily is a maximum of 36
-        # but I'm not sure how to calculate those because of stuff like Untertrumpfe etc.
-        # I think every node that isn't a node with perfect information, will start with all the remaining cards
-        # and then in here a valid one is selected by combining the return of get_valid_cards from the sample state
-        # and the remaining cards that the node has not yet played.
-        # to check if a node is fully expanded though, it will probably still need to take into account the current
-        # state sample and check if there are no more remaining cards, that are valid to play in the currently sampled
-        # state. Not sure how to handle has_been_sampled though, but maybe that will just work with N directly.
-
         game_sim = GameSim(self._rule)
         game_sim.init_from_state(sampled_state)
         game_sim.action_play_card(sampled_card)
@@ -486,25 +516,16 @@ class ISMCTS(Agent):
 
     def mcts(self, node: Node):
         assert not node.is_terminal, "Started mcts from terminal node"
-        sampled_state = self._sample_state(node)
 
+        sampled_state = self._sample_state(node)
         self._assert_sample_validity(node, sampled_state)
 
         next_node, sampled_state = self._selection(node, sampled_state)
-        assert (
-            next_node.last_sampled_state == sampled_state
-        ), "Sampled state not in sync with last_sampled_state"
         next_node, sampled_state = self._expansion(next_node, sampled_state)
-        assert (
-            next_node.last_sampled_state == sampled_state
-        ), "Sampled state not in sync with last_sampled_state"
         payoffs = self._rollout(next_node, sampled_state)
         # backprop uses the last_sampled_state property, no need to pass sampled state.
         # could use last_sampled_state also for the other methods theoretically but
         # if possible I'd like to remove it somehow so this way it'll be easier to adapt.
-        assert (
-            next_node.last_sampled_state == sampled_state
-        ), "Sampled state not in sync with last_sampled_state"
         self._backpropagation(next_node, payoffs)
 
     def _assert_sample_validity(self, node: ISMCTS.Node, sampled_state: GameState):
