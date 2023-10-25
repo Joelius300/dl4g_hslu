@@ -245,17 +245,66 @@ class ISMCTS(Agent):
             hand_indices = distributed_hands[-((i + 1) - skip_correction)]
             hands[p, hand_indices] = 1
 
+            direct_assert = len(hand_indices) == (len(remaining_cards)) // 3 + (
+                0
+                if i < node.known_state.nr_cards_in_trick or len(remaining_cards) % 3 == 0
+                else 1
+            )
+
+            indirect_cond = node.known_state.nr_cards_in_trick > 0 and not (
+                node.known_state.nr_cards_in_trick == 1
+                and node.last_player == node.root_player
+            )
+
+            indirect_p1 = len(hand_indices) == len(remaining_cards) // 3 + (
+                0 if i < node.known_state.nr_cards_in_trick else 1
+            )
+
+            indirect_p2 = (
+                len(remaining_cards) % 3 == 0
+                and len(hand_indices) == len(remaining_cards) // 3
+            )
+
+            indirect_assert = (indirect_cond and indirect_p1) or (
+                not indirect_cond and indirect_p2
+            )
+
+            assert indirect_assert == direct_assert, "The two fucked asserts are not equal"
+            # TODO have it run a bit,
+            # if there are no mismatches, the one just below this is probably most understandable.
+
             # for the players that have already played (i < nr_card_in_trick)
             # the number of cards should be floor(remaining_cards / 3)
-            # and for those who haven't (i >= nr_cards_in_trick) it should be 1 more
-            if node.known_state.nr_cards_in_trick > 0:
+            # and for those who haven't (i >= nr_cards_in_trick), it should be 1 more.
+            # if there are 0 in the trick or only the root player has played,
+            # the number will be divisible by 3 and everyone should have floor(remaining / 3)
+            # without adding anything to it.
+            assert len(hand_indices) == (len(remaining_cards)) // 3 + (
+                0
+                if i < node.known_state.nr_cards_in_trick or len(remaining_cards) % 3 == 0
+                else 1
+            )
+
+            # if cards have been played:
+            # for the players that have already played (i < nr_card_in_trick)
+            # the number of cards should be floor(remaining_cards / 3)
+            # and for those who haven't (i >= nr_cards_in_trick) it should be 1 more.
+            # if the root player is the only one who played, it's same case for the 3 others,
+            # as if there were 0 in the trick.
+            if node.known_state.nr_cards_in_trick > 0 and not (
+                node.known_state.nr_cards_in_trick == 1
+                and node.last_player == node.root_player
+            ):
                 assert len(hand_indices) == len(remaining_cards) // 3 + (
                     0 if i < node.known_state.nr_cards_in_trick else 1
                 )
             else:
-                # if there are 0 in the trick, everyone should have floor(remaining / 3).
+                # if there are 0 in the trick or only the root player has played,
+                # everyone should have floor(remaining / 3).
+                assert len(remaining_cards) % 3 == 0, "Remaining cards not divisible by 3"
                 assert len(hand_indices) == len(remaining_cards) // 3
 
+            # should not derive i from p due to order, just use next_player
             p = next_player[p]
 
         return state_from_observation(node.known_state, hands)
