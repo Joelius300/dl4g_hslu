@@ -345,27 +345,6 @@ class ISMCTS(Agent):
 
         np.random.shuffle(remaining_cards)
         distributed_hands = np.array_split(remaining_cards, 3)
-        num_cards_in_root_hand = num_cards_in_hand(node.known_state.hand)
-        most_card_in_non_root_hand = len(distributed_hands[0])
-        n_trick = node.known_state.nr_cards_in_trick
-
-        # schema: ROOT MAX SECOND THIRD | max, second, third are descending
-        if num_cards_in_root_hand == most_card_in_non_root_hand - 1:
-            # one less in root's hand than the max of the others
-            # could be 8999, 8998, 8988 so  1 <= n_trick <= 3
-            assert 1 <= n_trick <= 3, "Root has 1 less card than others but <1 or >3 in trick"
-        elif num_cards_in_root_hand == most_card_in_non_root_hand:
-            # equal to max
-            # could be 9999, 9998, 9988 so  0 <= n_trick <= 2
-            assert 0 <= n_trick <= 2, "Root has same nr cards as others but >2 in trick"
-        elif num_cards_in_root_hand == most_card_in_non_root_hand + 1:
-            # one more than max
-            # could be 9888, so n_trick == 3
-            assert n_trick == 3, "Root has 1 card more than others but not 3 in trick"
-        else:
-            # difference > 1 -> cannot happen
-            # things like 7988 are illegal, root played one too many and some other player one too few
-            assert False, "More than 1 difference in hand sizes"
 
         hands = np.zeros(shape=[4, 36], dtype=np.int32)
         hands[node.root_player, :] = node.known_state.hand
@@ -531,6 +510,8 @@ class ISMCTS(Agent):
     def mcts(self, node: Node):
         assert not node.is_terminal, "Started mcts from terminal node"
 
+        self._assert_entry_state_validity(node.known_state)
+
         sampled_state = self._sample_state(node)
         self._assert_sample_validity(node, sampled_state)
 
@@ -561,3 +542,41 @@ class ISMCTS(Agent):
         )
         assert np.array_equal(node.known_state.hand, sampled_state.hands[node.root_player])
         assert node.known_state == observation_from_state(sampled_state, node.root_player)
+
+    def _assert_entry_state_validity(self, entry_state: GameObservation):
+        num_cards_in_root_hand = num_cards_in_hand(entry_state.hand)
+        num_cards_in_other_players_hands_total = (
+            36 - entry_state.nr_played_cards - num_cards_in_root_hand
+        )
+        most_card_in_non_root_hand = math.ceil(num_cards_in_other_players_hands_total / 3)
+        least_cards_in_non_root_hand = math.floor(num_cards_in_other_players_hands_total / 3)
+        n_trick = entry_state.nr_cards_in_trick
+
+        # schema: ROOT MAX SECOND THIRD | max, second, third are descending
+        # the lower number is for players who've played a card this tick, higher for those who haven't
+
+        if most_card_in_non_root_hand == least_cards_in_non_root_hand:
+            assert num_cards_in_other_players_hands_total % 3 == 0, "Not divisible by 3"
+            # could be 9999 (0), 8999 (1), 9888 (3), so 0, 1 or 3 in trick
+            assert n_trick != 2, "Divisible by 3 but 2 in trick"
+        else:
+            assert (
+                most_card_in_non_root_hand == least_cards_in_non_root_hand + 1
+            ), "Most != Least + 1"
+
+        if num_cards_in_root_hand == most_card_in_non_root_hand - 1:
+            # one less in root's hand than the max of the others
+            # could be 8999, 8998, 8988 so  1 <= n_trick <= 3
+            assert 1 <= n_trick <= 3, "Root has 1 less card than others but <1 or >3 in trick"
+        elif num_cards_in_root_hand == most_card_in_non_root_hand:
+            # equal to max
+            # could be 9999, 9998, 9988 so  0 <= n_trick <= 2
+            assert 0 <= n_trick <= 2, "Root has same nr cards as others but >2 in trick"
+        elif num_cards_in_root_hand == most_card_in_non_root_hand + 1:
+            # one more than max
+            # could be 9888, so n_trick == 3
+            assert n_trick == 3, "Root has 1 card more than others but not 3 in trick"
+        else:
+            # difference > 1 -> cannot happen
+            # things like 7988 are illegal, root played one too many and some other player one too few
+            assert False, "More than 1 difference in hand sizes"
