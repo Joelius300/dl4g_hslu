@@ -256,6 +256,9 @@ class ISMCTS(Agent):
             get_payoffs if get_payoffs else default_payoff_func
         )
 
+        self._player = -1
+        """The player that we are playing as. Must always be the same per instance."""
+
     def _get_payoffs_meta(
         self, get_payoffs: Callable[[Union[GameObservation, GameState]], Payoffs]
     ):
@@ -313,7 +316,7 @@ class ISMCTS(Agent):
                 # the previous trick starter which is the player before the last trick starter because of wrap around.
                 # 2: a [b] c d  ->  winner was b but last player was D, which is inverse of next_player for prev starter
                 # 1: A B {C} D -> C started, went C-B-A-D, and winner was b
-                last_player = next_player.index(state.trick_first_player[state.nr_tricks-1])
+                last_player = next_player.index(state.trick_first_player[state.nr_tricks - 1])
 
         root = self.Node(
             state,
@@ -509,6 +512,14 @@ class ISMCTS(Agent):
 
     def mcts(self, node: Node):
         assert not node.is_terminal, "Started mcts from terminal node"
+
+        assert (
+            node.root_player == node.known_state.player and node.is_root
+        ), "Started MCTS for non-root player node"
+        assert (
+            self._player == -1 or self._player == node.root_player
+        ), "Playing for different player suddenly?!"
+        self._player = node.root_player
 
         self._assert_entry_state_validity(node.known_state)
 
