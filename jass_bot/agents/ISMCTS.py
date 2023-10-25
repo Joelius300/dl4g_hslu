@@ -299,7 +299,21 @@ class ISMCTS(Agent):
             if state.nr_played_cards > 0
             else -1
         )
-        last_player = next_player.index(state.player) if state.player >= 0 else -1
+
+        last_player = -1
+        if state.player >= 0:
+            if state.nr_cards_in_trick > 0:
+                # currently in a trick, player order is according to next_player
+                # if upper has played, lower has not and [x] is current (going right to left)
+                # a [b] C d  ->  previous was just the inverse of next_player
+                last_player = next_player.index(state.player)
+            elif state.nr_tricks > 0:
+                # trick was just won, player is now the trick winner.
+                # last player was the last player of the previous trick so 4th player after
+                # the previous trick starter which is the player before the last trick starter because of wrap around.
+                # 2: a [b] c d  ->  winner was b but last player was D, which is inverse of next_player for prev starter
+                # 1: A B {C} D -> C started, went C-B-A-D, and winner was b
+                last_player = next_player.index(state.trick_first_player[state.nr_tricks-1])
 
         root = self.Node(
             state,
