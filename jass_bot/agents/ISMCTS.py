@@ -321,7 +321,7 @@ class ISMCTS(Agent):
                 last_player = next_player.index(state.trick_first_player[state.nr_tricks - 1])
 
         root = self.Node(
-            state,
+            copy.deepcopy(state),  # deepcopy state to be sure. Not sure if views need to be restored here too.
             last_played_card=last_card,
             last_player=last_player,
             root_player=state.player,
