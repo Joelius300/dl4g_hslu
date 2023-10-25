@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import copy
+import json
 import logging
 import math
 import time
@@ -332,8 +334,18 @@ class ISMCTS(Agent):
         """Does MCTS during a certain time_budget (in seconds) from node and returns the best card to play."""
         time_end = time.time() + time_budget
 
+        state_backup = copy.deepcopy(node.known_state)
         while time.time() < time_end:
             self.mcts(node)
+            if node.known_state != state_backup:
+                with open("backup_state.json", "wt") as backup_state_file:
+                    backup_state_file.write(json.dumps(state_backup.to_json(), separators=(",", ":"), indent=4))
+                with open("new_state.json", "wt") as new_state_file:
+                    new_state_file.write(json.dumps(node.known_state.to_json(), separators=(",", ":"), indent=4))
+
+                assert False, "MCTS MUTATED THE KNOWN STATE OF THE ROOT NODE!!!"
+                # Sooo, apparently the original known_state is updated and cards are removed from the players
+                # hand for some reason. It's most likely a mutability / shadow copy issue somewhere.
 
         # all the children must be valid here, since the root node has perfect information about move validity
         return max(node.children, key=lambda n: n.N).last_played_card
@@ -350,7 +362,7 @@ class ISMCTS(Agent):
         distributed_hands = np.array_split(remaining_cards, 3)
 
         hands = np.zeros(shape=[4, 36], dtype=np.int32)
-        hands[node.root_player, :] = node.known_state.hand
+        hands[node.root_player, :] = node.known_state.hand.copy()
 
         skip_correction = 0
         start_player = node.known_state.trick_first_player[node.known_state.nr_tricks]
