@@ -364,6 +364,10 @@ class ISMCTS(Agent):
         hands = np.zeros(shape=[4, 36], dtype=np.int32)
         hands[node.root_player, :] = node.known_state.hand.copy()  # copy just to be sure
 
+        if len(remaining_cards) == 0:
+            # root is the only person left holding a card, no need to distribute anything else
+            return state_from_observation(node.known_state, hands).clone()  # copy just to be sure, can contain shallows
+
         skip_correction = 0
         start_player = node.known_state.trick_first_player[node.known_state.nr_tricks]
 
