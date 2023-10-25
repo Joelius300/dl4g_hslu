@@ -80,6 +80,13 @@ class ISMCTS(Agent):
             assert known_state.player_view == root_player, "Observation is not root POV"
 
             self.parent = parent
+
+            if self.parent:
+                assert (
+                    self.parent.known_state.nr_played_cards
+                    == self.known_state.nr_played_cards - 1
+                ), "Parent does not have one less card played than child."
+
             self.children: Optional[list[Self]] = None
             """Nodes that are possible to reach from here by playing one of the valid actions."""
 
@@ -93,8 +100,11 @@ class ISMCTS(Agent):
 
             self._remaining_cards: np.array = None
             """One-hot encoded set of the cards that have not been explored from this position."""
-            self._played_cards: np.array = np.zeros(36)
-            """One-hot encoded set of the cards that have been explored from this position. For each, a chlid should exist. (right?)"""
+            self._played_cards: np.array = np.zeros(36, dtype=int)
+            """
+            One-hot encoded set of the cards that have been explored from this position.
+            For each card, children should contain a corresponding child.
+            """
 
         @property
         def is_terminal(self):
@@ -116,7 +126,10 @@ class ISMCTS(Agent):
             assert (value is None) != (
                 self._last_sampled_state is None
             ), "Tried to unset or set a value when it was[nt] None"
-            self._last_sampled_state = value
+
+            # to avoid any nastiness with mutable game states (which happen very easily, trust me)
+            # clone the state no matter where it comes from.
+            self._last_sampled_state = value.clone() if value is not None else None
 
         def fully_expanded_for(self, rule: GameRule, sampled_state: GameState):
             """
@@ -170,6 +183,9 @@ class ISMCTS(Agent):
             assert (
                 sampled_state.player == self.known_state.player
             ), "Sampled state has different player's turn"
+            assert (
+                sampled_state.nr_played_cards == self.known_state.nr_played_cards
+            ), "Sample and known state out of sync"
             if self._remaining_cards is None:
                 if self.known_state.player == self.root_player:
                     # we have perfect information
@@ -461,6 +477,9 @@ class ISMCTS(Agent):
                     # if we find a better time and place to count how many times this sample was available
                     # when the parent was sampled. Maybe in the iterator itself but that's not very clean.
                     child.parentN += 1
+                    assert (
+                        child.last_sampled_state is None
+                    ), "Child still has last_sampled_state"
 
             parent.last_sampled_state = None
             parent = parent.parent
