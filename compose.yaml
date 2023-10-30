@@ -1,8 +1,0 @@
-services:
-  web: 
-    build:
-      context: app
-      target: builder
-    command: gunicorn --bind 0.0.0.0:8888 app:app
-    ports:
-      - '8888:8888'
