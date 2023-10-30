@@ -7,7 +7,7 @@ import math
 import time
 from typing import Callable, Optional, Self, Union, Tuple
 
-from heuristics import graf
+from jass_bot.heuristics import graf
 from jass.agents.agent import Agent
 from jass.game.const import team
 from jass.game.game_rule import GameRule

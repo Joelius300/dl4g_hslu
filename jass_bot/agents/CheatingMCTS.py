@@ -6,7 +6,7 @@ import time
 import random
 from typing import Callable, Optional
 
-from heuristics import graf
+from jass_bot.heuristics import graf
 from jass.agents.agent_cheating import AgentCheating
 from jass.game.const import team
 from jass.game.game_rule import GameRule

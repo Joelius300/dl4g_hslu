@@ -9,7 +9,7 @@ from typing import Callable, Optional, Iterable, Self, Generator
 
 import numpy as np
 
-from heuristics import graf
+from jass_bot.heuristics import graf
 from jass.agents.agent import Agent
 from jass.game.const import team
 from jass.game.game_rule import GameRule

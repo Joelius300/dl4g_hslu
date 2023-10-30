@@ -3,12 +3,12 @@ import logging
 import sys
 from typing import Callable
 
-from agents.CheatingMCTS import CheatingMCTS
-from agents.ISMCTS import ISMCTS
-from agents.alphabeta_agent import AlphaBetaAgent
-from agents.game_tree_container import GameTreeContainer
-from agents.minimax_agent import MiniMaxAgent
-from agents.rule_based import RuleBasedAgent
+from jass_bot.agents.CheatingMCTS import CheatingMCTS
+from jass_bot.agents.ISMCTS import ISMCTS
+from jass_bot.agents.alphabeta_agent import AlphaBetaAgent
+from jass_bot.agents.game_tree_container import GameTreeContainer
+from jass_bot.agents.minimax_agent import MiniMaxAgent
+from jass_bot.agents.rule_based import RuleBasedAgent
 from jass.agents.agent import Agent
 from jass.agents.agent_cheating import AgentCheating
 from jass.agents.agent_cheating_random_schieber import AgentCheatingRandomSchieber

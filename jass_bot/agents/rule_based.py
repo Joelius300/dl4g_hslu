@@ -4,7 +4,7 @@ from functools import cache
 import numpy as np
 from numpy.ma import MaskedArray
 
-from heuristics.general import will_beat_trick_with_card
+from jass_bot.heuristics.general import will_beat_trick_with_card
 from jass.agents.agent import Agent
 from jass.game.const import *
 from jass.game.game_observation import GameObservation

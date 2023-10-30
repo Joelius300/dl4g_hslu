@@ -8,8 +8,8 @@ from typing import NamedTuple, Optional
 
 import numpy as np
 
-from agents.game_tree_container import GameTreeContainer, GameTreeNode
-from heuristics.graf import graf_trump_selection
+from jass_bot.agents.game_tree_container import GameTreeContainer, GameTreeNode
+from jass_bot.heuristics.graf import graf_trump_selection
 from jass.agents.agent import Agent
 from jass.agents.agent_cheating import AgentCheating
 from jass.game.const import *
