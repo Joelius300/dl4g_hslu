@@ -1,11 +1,8 @@
 services:
-  web: 
+  bot:
     build:
       context: .
       dockerfile: jass_bot/Dockerfile
-      target: builder
-    working_dir: /app/jass_bot
-    # apparently gunicorn can handle some PYTHONPATH ugliness out of the box
-    command: gunicorn --bind 0.0.0.0:8888 "bot_service:create_app()"
+    command: gunicorn --bind 0.0.0.0:8888 "jass_bot.bot_service:create_app()"
     ports:
       - '8888:8888'
