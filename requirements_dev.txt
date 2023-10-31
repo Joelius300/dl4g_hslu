@@ -8,3 +8,7 @@ ipykernel~=6.25
 matplotlib
 scikit-learn
 plotly
+lightning
+torch
+torchmetrics
+tensorboard
