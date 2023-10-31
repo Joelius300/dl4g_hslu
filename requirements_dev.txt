@@ -5,3 +5,6 @@ black
 pyright
 nbstripout
 ipykernel~=6.25
+matplotlib
+scikit-learn
+plotly
