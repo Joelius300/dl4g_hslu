@@ -3,6 +3,8 @@ import logging
 import sys
 from typing import Callable
 
+from agents.CompositeAgent import CompositeAgent
+from heuristics import graf
 from jass_bot.agents.CheatingMCTS import CheatingMCTS
 from jass_bot.agents.ISMCTS import ISMCTS
 from jass_bot.agents.alphabeta_agent import AlphaBetaAgent
@@ -17,8 +19,9 @@ from jass.agents.agent_random_schieber import AgentRandomSchieber
 from jass.game.rule_schieber import RuleSchieber
 from jass.game.game_util import *
 from jass.game.const import *
-from tournament import tournament_ABAB
-
+from strategies.card_strategy import CardStrategy
+from strategies.trump_strategy import TrumpStrategy
+from tournament import tournament_ABAB, round_robin
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
@@ -32,4 +35,18 @@ if __name__ == "__main__":
     # print(count_colors(get_cards_encoded([DA, DQ, D6, S10, S7, C9])))
     # tournament_ABAB(lambda: CheatingMCTS(timebudget=0.1), AgentCheatingRandomSchieber, n_games=100)
 
-    tournament_ABAB(lambda: ISMCTS(timebudget=.03), AgentRandomSchieber, n_games=100)
+    # tournament_ABAB(lambda: ISMCTS(timebudget=.03), AgentRandomSchieber, n_games=100)
+    # round_robin({
+    #     "ISMCTS (tb=.01)": lambda: ISMCTS(timebudget=.01),
+    #     "ISMCTS (tb=.1)": lambda: ISMCTS(timebudget=.1),
+    #     "Random": AgentRandomSchieber
+    # }, n_games=50)
+
+    timebudget = .05
+    random_agent = AgentRandomSchieber()
+    round_robin({
+        "ISMCTS w/ Graf": lambda: CompositeAgent(TrumpStrategy.from_function(graf.graf_trump_selection), CardStrategy.from_agent(ISMCTS(timebudget))),
+        "ISMCTS w/ Random": lambda: CompositeAgent(TrumpStrategy.from_agent(random_agent), CardStrategy.from_agent(ISMCTS(timebudget))),
+        "Random w/ Graf": lambda: CompositeAgent(TrumpStrategy.from_function(graf.graf_trump_selection), CardStrategy.from_agent(random_agent)),
+        "Random w/ Random": AgentRandomSchieber,
+    }, n_games=100)
