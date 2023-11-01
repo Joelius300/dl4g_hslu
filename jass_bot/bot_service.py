@@ -1,18 +1,18 @@
 import logging
 
+from agents.MultiPlayerAgentContainer import MultiPlayerAgentContainer
+from jass.agents.agent_random_schieber import AgentRandomSchieber
+from jass.service.player_service_app import PlayerServiceApp
 from jass_bot.agents.ISMCTS import ISMCTS
 
 
 def create_app():
-    from jass.agents.agent_random_schieber import AgentRandomSchieber
-    from jass.service.player_service_app import PlayerServiceApp
-
     logging.basicConfig(level=logging.DEBUG)
 
     app = PlayerServiceApp("player_service")
 
     app.add_player("random", AgentRandomSchieber())
-    app.add_player("ISMCTS", ISMCTS(timebudget=.1))
+    app.add_player("ISMCTS", MultiPlayerAgentContainer(lambda: ISMCTS(timebudget=0.1)))
 
     return app
 
