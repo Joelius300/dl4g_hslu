@@ -7,6 +7,7 @@ import math
 import time
 from typing import Callable, Optional, Self, Union, Tuple
 
+import jass.game.const
 from jass_bot.heuristics import graf
 from jass.agents.agent import Agent
 from jass.game.const import team
@@ -22,6 +23,14 @@ Payoffs = np.ndarray[2, np.dtype[np.float64]]
 def points_div_by_max(state: GameObservation | GameState):
     # all points/payoffs between 0 and 1
     return state.points / np.max(state.points)
+
+
+WINNER_0 = np.array([1, 0])
+WINNER_1 = np.array([0, 1])
+
+
+def binary_payoff(state: GameObservation | GameState):
+    return WINNER_0 if state.points[0] > state.points[1] else WINNER_1
 
 
 def UCB1(node: ISMCTS.Node, total_n: int, player: int, c=1.0) -> float:
@@ -253,7 +262,7 @@ class ISMCTS(Agent):
         )
         self._rollout = rollout if rollout else self._random_walk
 
-        default_payoff_func = points_div_by_max
+        default_payoff_func = binary_payoff
         self._get_payoffs = self._get_payoffs_meta(
             get_payoffs if get_payoffs else default_payoff_func
         )

@@ -22,6 +22,7 @@ from jass.game.game_util import *
 from jass.game.const import *
 from jass_bot.strategies.card_strategy import CardStrategy
 from jass_bot.strategies.trump_strategy import TrumpStrategy
+from jass_bot.agents.ISMCTS import points_div_by_max, binary_payoff
 from jass_bot.tournament import tournament_ABAB, round_robin
 
 
@@ -47,9 +48,26 @@ def compare_trump_strategies(timebudget=0.05, n_games=100):
     )
 
 
+def compare_payoff_functions(timebudget=0.05, n_games=100):
+    payoff_functions = {
+        "points-normalized": points_div_by_max,
+        "binary-winner": binary_payoff,
+    }
+
+    return round_robin(
+        {
+            name: lambda: ISMCTS(timebudget=timebudget, get_payoffs=payoff_func)
+            for name, payoff_func in payoff_functions.items()
+        },
+        n_games=n_games,
+    )
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
-    tournament_ABAB(
-        AgentByNetwork("http://localhost:8888/ISMCTS"), AgentRandomSchieber, n_games=5
-    )
+    # tournament_ABAB(
+    #     AgentByNetwork("http://localhost:8888/ISMCTS"), AgentRandomSchieber, n_games=5
+    # )
+
+    compare_payoff_functions(timebudget=.1, n_games=1000)
