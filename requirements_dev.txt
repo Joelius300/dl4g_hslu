@@ -12,3 +12,4 @@ lightning
 torch
 torchmetrics
 tensorboard
+pyarrow
