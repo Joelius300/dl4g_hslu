@@ -15,12 +15,11 @@ def main():
     logging.basicConfig(level=logging.INFO)
 
     # setup the arena
-    arena = Arena(nr_games_to_play=1)
-    player = AgentRandomSchieber()
-    my_player = AgentByNetwork('http://localhost:8888/ISMCTS')
-    # my_player = AgentByNetwork('https://lg3bsb3a96.execute-api.eu-central-1.amazonaws.com/dev/random')
+    arena = Arena(nr_games_to_play=10)
+    a = AgentByNetwork('http://localhost:8888/ISMCTS')
+    b = AgentRandomSchieber()
 
-    arena.set_players(my_player, player, my_player, player)
+    arena.set_players(a, b, a, b)
     print('Playing {} games'.format(arena.nr_games_to_play))
     arena.play_all_games()
     print('Average Points Team 0: {:.2f})'.format(arena.points_team_0.mean()))
