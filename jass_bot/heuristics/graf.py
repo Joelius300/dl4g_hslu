@@ -50,4 +50,4 @@ def graf_trump_selection(obs: GameObservation) -> int:
     if scores_for_trumps[best_trump] < push_threshold and obs.forehand == -1:
         return PUSH
 
-    return best_trump
+    return int(best_trump)
