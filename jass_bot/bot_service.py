@@ -1,6 +1,6 @@
 import logging
 
-from agents.MultiPlayerAgentContainer import MultiPlayerAgentContainer
+from jass_bot.agents.MultiPlayerAgentContainer import MultiPlayerAgentContainer
 from jass.agents.agent_random_schieber import AgentRandomSchieber
 from jass.service.player_service_app import PlayerServiceApp
 from jass_bot.agents.ISMCTS import ISMCTS

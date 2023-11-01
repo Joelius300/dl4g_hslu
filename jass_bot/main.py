@@ -3,8 +3,8 @@ import logging
 import sys
 from typing import Callable
 
-from agents.CompositeAgent import CompositeAgent
-from heuristics import graf
+from jass_bot.agents.CompositeAgent import CompositeAgent
+from jass_bot.heuristics import graf
 from jass_bot.agents.CheatingMCTS import CheatingMCTS
 from jass_bot.agents.ISMCTS import ISMCTS
 from jass_bot.agents.alphabeta_agent import AlphaBetaAgent
@@ -19,9 +19,9 @@ from jass.agents.agent_random_schieber import AgentRandomSchieber
 from jass.game.rule_schieber import RuleSchieber
 from jass.game.game_util import *
 from jass.game.const import *
-from strategies.card_strategy import CardStrategy
-from strategies.trump_strategy import TrumpStrategy
-from tournament import tournament_ABAB, round_robin
+from jass_bot.strategies.card_strategy import CardStrategy
+from jass_bot.strategies.trump_strategy import TrumpStrategy
+from jass_bot.tournament import tournament_ABAB, round_robin
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
@@ -49,4 +49,4 @@ if __name__ == "__main__":
         "ISMCTS w/ Random": lambda: CompositeAgent(TrumpStrategy.from_agent(random_agent), CardStrategy.from_agent(ISMCTS(timebudget))),
         "Random w/ Graf": lambda: CompositeAgent(TrumpStrategy.from_function(graf.graf_trump_selection), CardStrategy.from_agent(random_agent)),
         "Random w/ Random": AgentRandomSchieber,
-    }, n_games=100)
+    }, n_games=500)
