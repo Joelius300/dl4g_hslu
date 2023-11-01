@@ -13,3 +13,4 @@ torch
 torchmetrics
 tensorboard
 pyarrow
+dask
