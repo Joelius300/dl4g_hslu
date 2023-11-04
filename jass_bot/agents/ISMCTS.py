@@ -51,6 +51,13 @@ def _get_remaining_cards_in_play_from_obs(obs: GameObservation):
     return remaining_cards
 
 
+def UCB1_selection(node: Node, sampled_state: GameState, player: int, c=1.0) -> Node:
+    return max(
+        node.get_children_consistent_with_sample(sampled_state),
+        key=lambda n: UCB1(n, n.parentN, player, c),
+    )
+
+
 class ISMCTS(Agent):
     class Node:
         """
@@ -67,7 +74,7 @@ class ISMCTS(Agent):
         ):
             self.N = 0
             """Number of visits to this node."""
-            self.parentN = 1  # initialized to 1 because it's been visited at conception, not sure that's correct
+            self.parentN = 1  # initialized to 1 because it's been visited at conception
             """Number of visits to the parent node WHEN THIS NODE WAS A COMPATIBLE CHILD."""
             self.W = np.zeros(2)
             """Accumulated payoff vectors (one component for each team)."""
@@ -79,8 +86,7 @@ class ISMCTS(Agent):
             self.known_state = known_state
             """
             The known state of this node from the view of the root player.
-            For subsequent nodes, it's derived from playing a sampled state,
-            which could potentially contain uncertain information I think.
+            For non-root nodes, it's derived from playing a sampled state.
             """
 
             num_card_in_hands_at_start_of_trick = 36 - (
@@ -112,10 +118,10 @@ class ISMCTS(Agent):
 
             self._last_sampled_state: Optional[GameState] = None
             """
-            The last sampled that with that was handled with this node.
+            The last sampled state that was handled with this node.
             LOOOOTS of potential for bugs when this is not handled/set/reset properly.
-            Only set in _selection and _expansions and only use in _backprop.
-            Reset after that it's None outside of the time between _selection and _backprop.
+            Only set via setter in _selection and _expansions and only use in _backprop.
+            Reset after, so it's None outside of the time between _selection and _backprop.
             """
 
             self._remaining_cards: np.array = None
@@ -147,14 +153,14 @@ class ISMCTS(Agent):
                 self._last_sampled_state is None
             ), "Tried to unset or set a value when it was[nt] None"
 
-            # to avoid any nastiness with mutable game states (which happen very easily, trust me)
+            # to avoid any nastiness with mutable game states (which happens very easily, trust me)
             # clone the state no matter where it comes from.
             self._last_sampled_state = value.clone() if value is not None else None
 
         def fully_expanded_for(self, rule: GameRule, sampled_state: GameState):
             """
             Returns if this node has been fully expanded for this sampled state and this rule (True),
-            or if there are still unexplored valid moves left to play.
+            or if there are still unexplored valid moves left to play (False).
             """
             return (
                 self._remaining_cards is not None
@@ -214,17 +220,18 @@ class ISMCTS(Agent):
                     # imperfect information, just take all remaining cards
                     # the valid ones are filtered with every query
                     cards = _get_remaining_cards_in_play_from_obs(self.known_state)
-                    self._remaining_cards = get_cards_encoded(cards)  # this 100% doens't need copy
+                    self._remaining_cards = get_cards_encoded(cards)  # this 100% doesn't need copy
 
             assert self._remaining_cards is not None, "No remaining cards"
 
-            valid_cards_in_sample = rule.get_valid_cards_from_state(sampled_state).copy()  # just to be sure..
+            valid_cards_in_sample = rule.get_valid_cards_from_state(sampled_state)  # used only readonly in AND
             valid_remaining_cards = self._remaining_cards & valid_cards_in_sample
             assert np.array_equal(
                 valid_remaining_cards.astype(bool),
                 (self._remaining_cards.astype(bool) & valid_cards_in_sample.astype(bool)),
             ), "Binary AND does not work on int array"
             assert len(valid_remaining_cards) == 36, "Not one-hot encoded anymore"
+
             return valid_remaining_cards
 
         def pop_random_valid_card(self, rule: GameRule, sampled_state: GameState):
@@ -239,7 +246,7 @@ class ISMCTS(Agent):
 
     def __init__(
         self,
-        timebudget: float,
+        time_budget: float,
         rule: GameRule = None,
         tree_policy: Optional[Callable[[Node, int, int], Node]] = None,
         rollout: Optional[Callable[[Node, GameState], Payoffs]] = None,
@@ -253,12 +260,12 @@ class ISMCTS(Agent):
 
         self._logger = logging.getLogger(__name__)
 
-        self.timebudget = timebudget
+        self.time_budget = time_budget
         self._rule = rule if rule else RuleSchieber()
         self._tree_policy = (
             tree_policy
             if tree_policy
-            else lambda node, sample, p: self.UCB1_selection(node, sample, p, c=ucb1_c_param)
+            else lambda node, sample, p: UCB1_selection(node, sample, p, c=ucb1_c_param)
         )
         self._rollout = rollout if rollout else self._random_walk
 
@@ -278,12 +285,6 @@ class ISMCTS(Agent):
             return get_payoffs(state)
 
         return internal_get_payoffs
-
-    def UCB1_selection(self, node: Node, sampled_state: GameState, player: int, c=1.0) -> Node:
-        return max(
-            node.get_children_consistent_with_sample(sampled_state),
-            key=lambda n: UCB1(n, n.parentN, player, c),
-        )
 
     def _random_walk(self, node: Node, sampled_state: GameState) -> Payoffs:
         if node.is_terminal:
@@ -305,9 +306,9 @@ class ISMCTS(Agent):
         return graf.graf_trump_selection(observation)
 
     def action_play_card(self, observation: GameObservation) -> int:
-        return self.start_mcts_from_obs(observation, self.timebudget)
+        return self.start_mcts_from_obs(observation, self.time_budget)
 
-    def start_mcts_from_obs(self, state: GameObservation, timebudget: float):
+    def start_mcts_from_obs(self, state: GameObservation, time_budget: float):
         last_card = (
             state.get_card_played(state.nr_played_cards - 1)
             if state.nr_played_cards > 0
@@ -337,7 +338,7 @@ class ISMCTS(Agent):
             parent=None,
         )
 
-        return self.start_mcts(root, timebudget)
+        return self.start_mcts(root, time_budget)
 
     def start_mcts(self, node: Node, time_budget: float):
         """Does MCTS during a certain time_budget (in seconds) from node and returns the best card to play."""
@@ -346,15 +347,14 @@ class ISMCTS(Agent):
         state_backup = copy.deepcopy(node.known_state)
         while time.time() < time_end:
             self.mcts(node)
-            if node.known_state != state_backup:
+
+            if __debug__ and node.known_state != state_backup:
                 with open("backup_state.json", "wt") as backup_state_file:
                     backup_state_file.write(json.dumps(state_backup.to_json(), separators=(",", ":"), indent=4))
                 with open("new_state.json", "wt") as new_state_file:
                     new_state_file.write(json.dumps(node.known_state.to_json(), separators=(",", ":"), indent=4))
 
                 assert False, "MCTS MUTATED THE KNOWN STATE OF THE ROOT NODE!!!"
-                # Sooo, apparently the original known_state is updated and cards are removed from the players
-                # hand for some reason. It's most likely a mutability / shadow copy issue somewhere.
 
         # all the children must be valid here, since the root node has perfect information about move validity
         return max(node.children, key=lambda n: n.N).last_played_card
@@ -579,7 +579,9 @@ class ISMCTS(Agent):
         assert np.array_equal(node.known_state.hand, sampled_state.hands[node.root_player])
         assert node.known_state == observation_from_state(sampled_state, node.root_player)
 
-    def _assert_entry_state_validity(self, entry_state: GameObservation):
+    @staticmethod
+    def _assert_entry_state_validity(entry_state: GameObservation):
+        # Due to mutability errors, some hands would get mutated in illegal ways. This is to catch that.
         num_cards_in_root_hand = num_cards_in_hand(entry_state.hand)
         num_cards_in_other_players_hands_total = (
             36 - entry_state.nr_played_cards - num_cards_in_root_hand
