@@ -4,5 +4,8 @@ services:
       context: .
       dockerfile: jass_bot/Dockerfile
     command: gunicorn --bind 0.0.0.0:8888 "jass_bot.bot_service:create_app()"
+    environment:
+      TIME_BUDGET: 9.75
+      LOGGING_LEVEL: 'INFO'
     ports:
       - '8888:8888'
