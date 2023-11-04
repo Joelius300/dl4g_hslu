@@ -66,8 +66,8 @@ def compare_payoff_functions(time_budget=0.05, n_games=100):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
-    # tournament_ABAB(
-    #     AgentByNetwork("http://localhost:8888/ISMCTS"), AgentRandomSchieber, n_games=5
-    # )
+    tournament_ABAB(
+        AgentByNetwork("http://localhost:8888/ISMCTS"), AgentRandomSchieber, n_games=3
+    )
 
-    compare_payoff_functions(time_budget=.1, n_games=1000)
+    # compare_payoff_functions(time_budget=.1, n_games=1000)

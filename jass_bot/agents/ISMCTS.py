@@ -7,10 +7,9 @@ import math
 import time
 from typing import Callable, Optional, Self, Union, Tuple
 
-import jass.game.const
 from jass_bot.heuristics import graf
 from jass.agents.agent import Agent
-from jass.game.const import team
+from jass.game.const import team, card_strings, trump_strings_short
 from jass.game.game_rule import GameRule
 from jass.game.game_sim import GameSim
 from jass.game.game_state_util import *
@@ -303,7 +302,9 @@ class ISMCTS(Agent):
         return self._get_payoffs(sim.state)
 
     def action_trump(self, observation: GameObservation) -> int:
-        return graf.graf_trump_selection(observation)
+        trump = graf.graf_trump_selection(observation)
+        self._logger.debug(f"Selected trump {trump_strings_short[trump]} according to graf heuristic.")
+        return trump
 
     def action_play_card(self, observation: GameObservation) -> int:
         return self.start_mcts_from_obs(observation, self.time_budget)
@@ -345,7 +346,9 @@ class ISMCTS(Agent):
         time_end = time.time() + time_budget
 
         state_backup = copy.deepcopy(node.known_state)
+        i = 0
         while time.time() < time_end:
+            i += 1
             self.mcts(node)
 
             if __debug__ and node.known_state != state_backup:
@@ -357,7 +360,11 @@ class ISMCTS(Agent):
                 assert False, "MCTS MUTATED THE KNOWN STATE OF THE ROOT NODE!!!"
 
         # all the children must be valid here, since the root node has perfect information about move validity
-        return max(node.children, key=lambda n: n.N).last_played_card
+        best_child = max(node.children, key=lambda n: n.N)
+        best_card = best_child.last_played_card
+        self._logger.debug(f"Selected '{card_strings[best_card]}' with {best_child.N} visits after {i} simulations.")
+
+        return best_card
 
     def _sample_state(self, node: Node) -> GameState:
         remaining_cards = np.array(_get_remaining_cards_in_play_from_obs(node.known_state))
@@ -485,7 +492,7 @@ class ISMCTS(Agent):
                 # the hands of the others. However, it still
                 # leaks information because it keeps who won
                 # the last trick -> order of players.
-                # may not be an issue because incompatible ones are filtered anyway.
+                # probably not an issue because incompatible children are filtered anyway.
                 sampled_state,
                 node.root_player,
             ),

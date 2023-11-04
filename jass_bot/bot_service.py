@@ -1,18 +1,28 @@
 import logging
+import os
 
 from jass_bot.agents.MultiPlayerAgentContainer import MultiPlayerAgentContainer
 from jass.agents.agent_random_schieber import AgentRandomSchieber
 from jass.service.player_service_app import PlayerServiceApp
 from jass_bot.agents.ISMCTS import ISMCTS
 
+DEFAULT_TIME_BUDGET = 5
+DEFAULT_LOGGING_LEVEL = logging.WARNING
+FLASK_PACKAGE_NAME = "jass_bot"  # name of the package that contains the code for the flask application
+
 
 def create_app():
-    logging.basicConfig(level=logging.DEBUG)
+    time_budget = float(os.environ.get("TIME_BUDGET", DEFAULT_TIME_BUDGET))
+    logging_level = os.environ.get("LOGGING_LEVEL", DEFAULT_LOGGING_LEVEL)
 
-    app = PlayerServiceApp("player_service")
+    print(f"Initialized app with logging level {logging_level} and time budget {time_budget}.")
+
+    logging.basicConfig(level=logging_level)
+
+    app = PlayerServiceApp(FLASK_PACKAGE_NAME)
 
     app.add_player("random", AgentRandomSchieber())
-    app.add_player("ISMCTS", MultiPlayerAgentContainer(lambda: ISMCTS(timebudget=0.1)))
+    app.add_player("ISMCTS", MultiPlayerAgentContainer(lambda: ISMCTS(time_budget)))
 
     return app
 
