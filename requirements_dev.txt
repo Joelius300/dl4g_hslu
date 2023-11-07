@@ -15,3 +15,4 @@ tensorboard
 pyarrow
 dask
 gymnasium
+stable-baselines3
