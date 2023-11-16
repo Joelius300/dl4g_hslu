@@ -1,0 +1,12 @@
+stages:
+  swisslos_balancing:
+    cmd: python swisslos_balancing.py
+    deps:
+    - data/2018_10_18_trump.csv
+    - data/player_all_stat.json
+    params:
+    - swisslos_balancing.n_games_threshold
+    - swisslos_balancing.random_state
+    - swisslos_balancing.top_p
+    outs:
+    - data/swisslos_balanced.csv
