@@ -1,0 +1,5 @@
+outs:
+- md5: 449bda193ce902fff9af5874b30b51cb
+  size: 576493
+  hash: md5
+  path: player_all_stat.json
