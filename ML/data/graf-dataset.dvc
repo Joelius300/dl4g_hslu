@@ -1,0 +1,6 @@
+outs:
+- md5: 3e53e5285746af1108f8ac97dbc7a9e1.dir
+  size: 195025804
+  nfiles: 2
+  hash: md5
+  path: graf-dataset
