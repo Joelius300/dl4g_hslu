@@ -25,12 +25,13 @@ def train(
     max_epochs=100,
     early_stop_patience=5,
     log_every_n_steps=5,
+    checkpoint_filename=MODEL_NAME,
 ):
     seed_everything(42)
 
     # we are fine using accuracy here because the datasets we use are balanced.
     # use fixed name for checkpoint files, so they can be loaded in more easily.
-    checkpoint_callback = ModelCheckpoint(monitor="val_accuracy", mode="max", filename=MODEL_NAME)
+    checkpoint_callback = ModelCheckpoint(monitor="val_accuracy", mode="max", filename=checkpoint_filename)
     # patience is number of epochs of being worse before stopping.
     # actually it's number of val checks, but we check val once per epoch.
     # with this we slightly overtrain the model as the val_accuracy continues
@@ -106,8 +107,8 @@ if __name__ == "__main__":
             logger.error(f"Checkpoint file not found: {checkpoint_path}")
             sys.exit(1)
 
-    fine_tune = checkpoint_path is not None
-    key = "fine_tune" if fine_tune else "pre_train"
+    pre_train = checkpoint_path is None
+    key = "pre_train" if pre_train else "fine_tune"
     params = dvc.api.params_show()[key]
     if checkpoint_path:
         model = TrumpSelection.load_from_checkpoint(checkpoint_path)
@@ -128,10 +129,11 @@ if __name__ == "__main__":
     early_stop_patience = params["early_stop_patience"]
 
     logger.info(
-        ("Training new" if not fine_tune else "Fine-tuning")
+        ("Training new" if pre_train else "Fine-tuning")
         + " model on "
-        + ("graf" if graf else "swisslos")  # this is the same as sys.argv[1] hopefully
+        + sys.argv[1]
         + " dataset"
     )
 
-    train(model, dm, max_epochs, early_stop_patience, 5 if graf else 1)
+    next_checkpoint_path = MODEL_NAME + ("_pre_trained" if pre_train else "")
+    train(model, dm, max_epochs, early_stop_patience, 5 if graf else 1, next_checkpoint_path)

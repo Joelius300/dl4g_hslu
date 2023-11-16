@@ -24,9 +24,9 @@ stages:
     - pre_train.max_epochs
     - pre_train.early_stop_patience
     outs:
-    - dvclive/artifacts/trump_selection.ckpt
+    - dvclive/artifacts/trump_selection_pre_trained.ckpt
   swisslos_finetuning:
-    cmd: python training.py swisslos dvclive/artifacts/trump_selection.ckpt
+    cmd: python training.py swisslos dvclive/artifacts/trump_selection_pre_trained.ckpt
     deps:
       - training.py
       - data/swisslos_balanced.csv
