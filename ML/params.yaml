@@ -1,4 +1,0 @@
-swisslos_balancing:
-  top_p: 0.2
-  n_games_threshold: 1000
-  random_state: 42

@@ -1,4 +1,3 @@
-import copy
 import logging
 import os.path
 import sys
@@ -9,8 +8,8 @@ from lightning import seed_everything
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint, EarlyStopping
 from lightning.pytorch.loggers import TensorBoardLogger
 
-from ML.trump_selection.trump_graf_datamodule import TrumpGrafDataModule
-from ML.trump_selection.trump_swisslos_datamodule import TrumpSwisslosDataModule
+from trump_graf_datamodule import TrumpGrafDataModule
+from trump_swisslos_datamodule import TrumpSwisslosDataModule
 from trump_selection import TrumpSelection
 
 from dvclive.lightning import DVCLiveLogger
@@ -51,7 +50,7 @@ def train(
             checkpoint_callback,
             early_stopping,
         ],
-        loggers=loggers,
+        logger=loggers,
         profiler="simple",
         log_every_n_steps=log_every_n_steps,
     )
@@ -72,8 +71,8 @@ def get_graf_datamodule(batch_size: int, num_workers=4):
     # As mentioned there as well, it's not worth it for this project but transforming graf-balancing into a script
     # and a stage in the pipeline would be much cleaner.
     return TrumpGrafDataModule(
-        "./data/graf-dataset-balanced/train/",
-        "./data/graf-dataset-balanced/val/",
+        "data/graf-dataset-balanced/train/",
+        "data/graf-dataset-balanced/val/",
         num_workers=num_workers,
         batch_size=batch_size,
     )
@@ -81,7 +80,7 @@ def get_graf_datamodule(batch_size: int, num_workers=4):
 
 def get_swisslos_datamodule(batch_size: int, test_split=0.2, num_workers=4):
     return TrumpSwisslosDataModule(
-        "./data/swisslos_balanced.csv",
+        "data/swisslos_balanced.csv",
         # keep some test data to judge "how well the model imitates top human players" -> may not be best performance
         test_split=test_split,
         # hard code the 80/20 split here too to avoid inconsistencies
@@ -92,6 +91,8 @@ def get_swisslos_datamodule(batch_size: int, test_split=0.2, num_workers=4):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+
     if len(sys.argv) < 2 or sys.argv[1] not in ["graf", "swisslos"]:
         logger.error("Must specify the dataset to be used ('graf' or 'swisslos').")
         sys.exit(1)
@@ -121,5 +122,7 @@ if __name__ == "__main__":
 
     max_epochs = params["max_epochs"]
     early_stop_patience = params["early_stop_patience"]
+    # since there are a lot more data points in the graf dataset, scale the patience up for the smaller swisslos dataset
+    early_stop_patience *= 1 if graf else 3
 
     train(model, dm, max_epochs, early_stop_patience, 5 if graf else 1)

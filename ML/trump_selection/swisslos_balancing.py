@@ -5,9 +5,9 @@ from jass.game.const import card_strings
 import numpy as np
 
 STAGE_NAME = "swisslos_balancing"
-PLAYER_ALL_STATS_PATH = "./data/player_all_stat.json"
-TRUMP_DATASET_PATH = "./data/2018_10_18_trump.csv"
-TRUMP_DATASET_BALANCED_PATH = "./data/swisslos_balanced.csv"
+PLAYER_ALL_STATS_PATH = "data/player_all_stat.json"
+TRUMP_DATASET_PATH = "data/2018_10_18_trump.csv"
+TRUMP_DATASET_BALANCED_PATH = "data/swisslos_balanced.csv"
 
 logger = logging.getLogger(STAGE_NAME)
 

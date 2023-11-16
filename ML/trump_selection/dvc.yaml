@@ -10,3 +10,15 @@ stages:
     - swisslos_balancing.top_p
     outs:
     - data/swisslos_balanced.csv
+  graf_pretrain:
+    cmd: python training.py graf
+    deps:
+    - data/graf-dataset-balanced
+    params:
+    - train.hidden_dim
+    - train.n_layers
+    - train.learning_rate
+    - train.batch_size
+    - train.max_epochs
+    - train.early_stop_patience
+    # TODO artifacts and metrics and stuff

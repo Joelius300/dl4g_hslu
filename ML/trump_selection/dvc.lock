@@ -21,3 +21,19 @@ stages:
       hash: md5
       md5: a7dacb09206e40d89ae2eb732d26a011
       size: 1014854
+  graf_pretrain:
+    cmd: python training.py graf
+    deps:
+    - path: data/graf-dataset-balanced
+      hash: md5
+      md5: 24b5fcfdba01902faf244dfea654aa63.dir
+      size: 219700249
+      nfiles: 52
+    params:
+      params.yaml:
+        train.batch_size: 15000
+        train.early_stop_patience: 5
+        train.hidden_dim: 50
+        train.learning_rate: 0.001
+        train.max_epochs: 150
+        train.n_layers: 2
