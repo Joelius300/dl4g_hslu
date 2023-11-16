@@ -57,6 +57,8 @@ def get_balanced_dataset(dataset: pd.DataFrame, random_state=42):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+
     # Note: I'm not 100% sure how to use this func, as it always seems to return only the params
     # that I specified in the dependencies to this stage, even when I don't pass a stage.
     params = dvc.api.params_show(stages=STAGE_NAME)[STAGE_NAME]
@@ -66,15 +68,21 @@ if __name__ == "__main__":
 
     top_players = get_top_players(top_p, n_games_threshold)
 
+    # weighted average of the mean scores of all players with the number of played games as weight
+    mean_mean = ((top_players["mean"] * top_players["nr"]) / top_players["nr"].sum()).sum()
+    contains_anonymous = 0 in top_players["id"]
     logger.info(
         f"Selected top {top_players.shape[0]} players with more than {n_games_threshold} games for a "
-        f"player base with {top_players['nr'].sum()} games played combined."
+        f"player base with {top_players['nr'].sum()} games played combined and an average score of {mean_mean:.2f}. "
+        f"The anonymous player base IS{('' if contains_anonymous else ' NOT')} in this selection."
     )
 
-    dataset = get_trump_dataset_of_players(top_players['id'])
+    dataset = get_trump_dataset_of_players(top_players["id"])
     balanced, samples_per_trump = get_balanced_dataset(dataset, random_state)
 
-    logger.info(f"Balanced dataset from original size {dataset.shape[0]} down to {balanced.shape[0]} "
-                f"with {samples_per_trump} samples per trump and forehand/rearhand.")
+    logger.info(
+        f"Balanced dataset from original size {dataset.shape[0]} down to {balanced.shape[0]} "
+        f"with {samples_per_trump} samples per trump and forehand/rearhand."
+    )
 
     balanced.to_csv(TRUMP_DATASET_BALANCED_PATH)
