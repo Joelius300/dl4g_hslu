@@ -7,12 +7,12 @@ pre_train:
   hidden_dim: 50
   n_layers: 3
   learning_rate: 1e-3
-  batch_size: 200000
+  batch_size: 500000
   max_epochs: 150
   early_stop_patience: 5
 
 fine_tune:
   learning_rate: 1e-5
-  batch_size: 15000
+  batch_size: 500000
   max_epochs: 20000
-  early_stop_patience: 50
+  early_stop_patience: 100
