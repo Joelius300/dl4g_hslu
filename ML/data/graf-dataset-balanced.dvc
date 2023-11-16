@@ -1,0 +1,6 @@
+outs:
+- md5: 24b5fcfdba01902faf244dfea654aa63.dir
+  size: 219700249
+  nfiles: 52
+  hash: md5
+  path: graf-dataset-balanced
