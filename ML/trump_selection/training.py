@@ -29,7 +29,8 @@ def train(
     seed_everything(42)
 
     # we are fine using accuracy here because the datasets we use are balanced.
-    checkpoint_callback = ModelCheckpoint(monitor="val_accuracy", mode="max")
+    # use fixed name for checkpoint files, so they can be loaded in more easily.
+    checkpoint_callback = ModelCheckpoint(monitor="val_accuracy", mode="max", filename=MODEL_NAME)
     # patience is number of epochs of being worse before stopping.
     # actually it's number of val checks, but we check val once per epoch.
     # with this we slightly overtrain the model as the val_accuracy continues
