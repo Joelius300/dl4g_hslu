@@ -6,6 +6,7 @@ import torchmetrics
 
 
 INPUT_DIM = 36 + 1  # all cards + forehand
+N_CLASSES = 7  # all trumps + push
 
 
 class TrumpSelection(pl.LightningModule):
@@ -14,26 +15,27 @@ class TrumpSelection(pl.LightningModule):
 
         self.save_hyperparameters()
 
-        n_classes = 7
         self.ll = nn.ModuleList(
             [nn.Linear(INPUT_DIM, hidden_dim)]
             + [nn.Linear(hidden_dim, hidden_dim) for _ in range(n_layers - 1)]
         )
-        self.classifier = nn.Linear(hidden_dim, n_classes)
+        self.classifier = nn.Linear(hidden_dim, N_CLASSES)
         self.criterion = nn.CrossEntropyLoss()
 
         self.metrics = nn.ModuleDict(
             dict(
-                accuracy=torchmetrics.Accuracy("multiclass", num_classes=n_classes),
-                precision=torchmetrics.Precision("multiclass", num_classes=n_classes),
-                recall=torchmetrics.Recall("multiclass", num_classes=n_classes),
-                f1=torchmetrics.F1Score("multiclass", num_classes=n_classes),
+                accuracy=torchmetrics.Accuracy("multiclass", num_classes=N_CLASSES),
+                precision=torchmetrics.Precision("multiclass", num_classes=N_CLASSES),
+                recall=torchmetrics.Recall("multiclass", num_classes=N_CLASSES),
+                f1=torchmetrics.F1Score("multiclass", num_classes=N_CLASSES),
             )
         )
 
         self.learning_rate = learning_rate
 
-        self.example_input_array = torch.tensor([1] * 9 + [0] * (INPUT_DIM - 9))
+        self.example_input_array = torch.tensor(
+            [1] * 9 + [0] * (INPUT_DIM - 9), dtype=torch.float
+        )
 
     def forward(self, x):
         for l in self.ll:
