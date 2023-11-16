@@ -28,15 +28,15 @@ stages:
   swisslos_finetuning:
     cmd: python training.py swisslos dvclive/artifacts/trump_selection_pre_trained.ckpt
     deps:
-      - training.py
-      - data/swisslos_balanced.csv
+    - training.py
+    - data/swisslos_balanced.csv
     params:
-      - fine_tune.learning_rate
-      - fine_tune.batch_size
-      - fine_tune.max_epochs
-      - fine_tune.early_stop_patience
+    - fine_tune.learning_rate
+    - fine_tune.batch_size
+    - fine_tune.max_epochs
+    - fine_tune.early_stop_patience
     outs:
-      - dvclive/artifacts/trump_selection.ckpt
+    - dvclive/artifacts/trump_selection.ckpt
 params:
 - dvclive/params.yaml
 metrics:

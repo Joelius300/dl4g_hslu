@@ -13,6 +13,6 @@ pre_train:
 
 fine_tune:
   learning_rate: 1e-5
-  batch_size: 10000
-  max_epochs: 150
-  early_stop_patience: 15
+  batch_size: 15000
+  max_epochs: 20000
+  early_stop_patience: 50
