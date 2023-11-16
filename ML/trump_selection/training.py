@@ -54,6 +54,7 @@ def train(
         logger=loggers,
         profiler="simple",
         log_every_n_steps=log_every_n_steps,
+        precision="16-mixed",
     )
 
     for logger in trainer.loggers:
@@ -105,7 +106,9 @@ if __name__ == "__main__":
             logger.error(f"Checkpoint file not found: {checkpoint_path}")
             sys.exit(1)
 
-    params = dvc.api.params_show()["train"]
+    fine_tune = checkpoint_path is not None
+    key = "fine_tune" if fine_tune else "pre_train"
+    params = dvc.api.params_show()[key]
     if checkpoint_path:
         model = TrumpSelection.load_from_checkpoint(checkpoint_path)
     else:
@@ -123,7 +126,12 @@ if __name__ == "__main__":
 
     max_epochs = params["max_epochs"]
     early_stop_patience = params["early_stop_patience"]
-    # since there are a lot more data points in the graf dataset, scale the patience up for the smaller swisslos dataset
-    early_stop_patience *= 1 if graf else 3
+
+    logger.info(
+        ("Training new" if not fine_tune else "Fine-tuning")
+        + " model on "
+        + ("graf" if graf else "swisslos")  # this is the same as sys.argv[1] hopefully
+        + " dataset"
+    )
 
     train(model, dm, max_epochs, early_stop_patience, 5 if graf else 1)

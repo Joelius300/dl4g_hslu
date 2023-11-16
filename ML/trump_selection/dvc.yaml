@@ -17,15 +17,26 @@ stages:
     - training.py
     - data/graf-dataset-balanced
     params:
-    - train.hidden_dim
-    - train.n_layers
-    - train.learning_rate
-    - train.batch_size
-    - train.max_epochs
-    - train.early_stop_patience
-    # TODO artifacts and metrics and stuff
+    - pre_train.hidden_dim
+    - pre_train.n_layers
+    - pre_train.learning_rate
+    - pre_train.batch_size
+    - pre_train.max_epochs
+    - pre_train.early_stop_patience
     outs:
     - dvclive/artifacts/trump_selection.ckpt
+  swisslos_finetuning:
+    cmd: python training.py swisslos dvclive/artifacts/trump_selection.ckpt
+    deps:
+      - training.py
+      - data/swisslos_balanced.csv
+    params:
+      - fine_tune.learning_rate
+      - fine_tune.batch_size
+      - fine_tune.max_epochs
+      - fine_tune.early_stop_patience
+    outs:
+      - dvclive/artifacts/trump_selection.ckpt
 params:
 - dvclive/params.yaml
 metrics:

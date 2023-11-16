@@ -3,10 +3,16 @@ swisslos_balancing:
   n_games_threshold: 1000
   random_state: 42
 
-train:
+pre_train:
   hidden_dim: 50
   n_layers: 3
   learning_rate: 1e-3
   batch_size: 200000
   max_epochs: 150
   early_stop_patience: 5
+
+fine_tune:
+  learning_rate: 1e-5
+  batch_size: 10000
+  max_epochs: 150
+  early_stop_patience: 15
