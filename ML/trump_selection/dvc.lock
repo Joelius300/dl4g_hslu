@@ -11,6 +11,10 @@ stages:
       hash: md5
       md5: 449bda193ce902fff9af5874b30b51cb
       size: 576493
+    - path: swisslos_balancing.py
+      hash: md5
+      md5: 06cb9feb52f0ab86f272e61e28c62341
+      size: 3266
     params:
       params.yaml:
         swisslos_balancing.n_games_threshold: 1000
@@ -29,6 +33,10 @@ stages:
       md5: 24b5fcfdba01902faf244dfea654aa63.dir
       size: 219700249
       nfiles: 52
+    - path: training.py
+      hash: md5
+      md5: 52c1016b146d088ee604e0ca1cdf41d9
+      size: 4755
     params:
       params.yaml:
         train.batch_size: 15000
@@ -37,3 +45,8 @@ stages:
         train.learning_rate: 0.001
         train.max_epochs: 150
         train.n_layers: 2
+    outs:
+    - path: dvclive/artifacts/trump_selection.ckpt
+      hash: md5
+      md5: ba9eb251621b94ac816b1f6f1af7867d
+      size: 68104

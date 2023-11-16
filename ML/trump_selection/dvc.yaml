@@ -25,4 +25,15 @@ stages:
     - train.early_stop_patience
     # TODO artifacts and metrics and stuff
     outs:
-      - dvclive/artifacts/trump_selection.ckpt
+    - dvclive/artifacts/trump_selection.ckpt
+params:
+- dvclive/params.yaml
+metrics:
+- dvclive/metrics.json
+plots:
+- dvclive/plots/metrics:
+    x: step
+artifacts:
+  best:
+    path: dvclive/artifacts/trump_selection.ckpt
+    type: model
