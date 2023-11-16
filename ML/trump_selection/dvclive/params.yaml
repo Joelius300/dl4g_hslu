@@ -3,5 +3,5 @@ n_layers: 3
 learning_rate: 0.001
 train_path: data/graf-dataset-balanced/train/
 val_path: data/graf-dataset-balanced/val/
-batch_size: 50000
+batch_size: 200000
 num_workers: 4

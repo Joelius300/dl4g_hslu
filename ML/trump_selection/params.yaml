@@ -7,6 +7,6 @@ train:
   hidden_dim: 50
   n_layers: 3
   learning_rate: 1e-3
-  batch_size: 50000
+  batch_size: 200000
   max_epochs: 150
   early_stop_patience: 5

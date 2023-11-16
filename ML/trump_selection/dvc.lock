@@ -39,7 +39,7 @@ stages:
       size: 4755
     params:
       params.yaml:
-        train.batch_size: 50000
+        train.batch_size: 200000
         train.early_stop_patience: 5
         train.hidden_dim: 50
         train.learning_rate: 0.001
@@ -48,5 +48,5 @@ stages:
     outs:
     - path: dvclive/artifacts/trump_selection.ckpt
       hash: md5
-      md5: dc5cea778f7d15de7d3029803a7ce876
+      md5: c9ee5bf6ff62f73edf4a1f8c4420fced
       size: 100848
