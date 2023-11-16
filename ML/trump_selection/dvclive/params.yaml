@@ -1,7 +1,7 @@
 hidden_dim: 50
-n_layers: 2
+n_layers: 3
 learning_rate: 0.001
 train_path: data/graf-dataset-balanced/train/
 val_path: data/graf-dataset-balanced/val/
-batch_size: 15000
+batch_size: 50000
 num_workers: 4
