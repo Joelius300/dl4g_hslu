@@ -2,6 +2,7 @@ stages:
   swisslos_balancing:
     cmd: python swisslos_balancing.py
     deps:
+    - swisslos_balancing.py
     - data/2018_10_18_trump.csv
     - data/player_all_stat.json
     params:
@@ -13,6 +14,7 @@ stages:
   graf_pretrain:
     cmd: python training.py graf
     deps:
+    - training.py
     - data/graf-dataset-balanced
     params:
     - train.hidden_dim
@@ -22,3 +24,5 @@ stages:
     - train.max_epochs
     - train.early_stop_patience
     # TODO artifacts and metrics and stuff
+    outs:
+      - dvclive/artifacts/trump_selection.ckpt
