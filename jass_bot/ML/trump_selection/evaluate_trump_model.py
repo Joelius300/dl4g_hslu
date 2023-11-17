@@ -1,9 +1,9 @@
 import dvc.api
 import dvclive.live
 
-from agent_definitions import TrumpDefs, CardDefs
-from agent_definition import AgentDefinition
-from tournament import tournament_multiple_sets
+from jass_bot.agent_definitions import TrumpDefs, CardDefs
+from jass_bot.agent_definition import AgentDefinition
+from jass_bot.tournament import tournament_multiple_sets
 
 STAGE_NAME = "evaluate_trump_model"
 
