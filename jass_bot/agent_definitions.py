@@ -1,27 +1,9 @@
-from collections import namedtuple
-
-from agents.CompositeAgent import CompositeAgent
+from ML.trump_selection.model_trump_strategy import ModelTrumpStrategy
 from agents.ISMCTS import ISMCTS
-from agents.MultiPlayerAgentContainer import MultiPlayerAgentContainer
 from heuristics import graf
-from jass.agents.agent import Agent
 from jass.agents.agent_random_schieber import AgentRandomSchieber
 from strategies.card_strategy import CardStrategy
 from strategies.trump_strategy import TrumpStrategy
-
-AgentDefinition = namedtuple("AgentDefinition", ["trump", "card", "needs_user_wrapper"])
-
-
-def create_agent(definition: AgentDefinition) -> Agent:
-    trump, card, needs_wrapper = definition
-    MAX_AGENTS_NEEDED = 4  # an agent that needs to handle all 4 players
-    agent_generator = (CompositeAgent(get_trump_strat(trump), get_card_strat(card)) for _ in range(MAX_AGENTS_NEEDED))
-    if needs_wrapper:
-        agent = MultiPlayerAgentContainer.from_agents(agent_generator)
-    else:
-        agent = next(agent_generator)
-
-    return agent
 
 
 def get_trump_strat(trump_def: dict) -> TrumpStrategy:
@@ -30,6 +12,8 @@ def get_trump_strat(trump_def: dict) -> TrumpStrategy:
         return TrumpStrategy.from_agent(AgentRandomSchieber())
     elif name == "graf":
         return TrumpStrategy.from_function(graf.graf_trump_selection)
+    elif name == "model":
+        return ModelTrumpStrategy(trump_def["checkpoint_path"])
 
 
 def get_card_strat(card_def: dict) -> CardStrategy:
@@ -59,3 +43,6 @@ class TrumpDefs:
     def graf(cls):
         return dict(name="graf")
 
+    @classmethod
+    def model(cls, checkpoint_path):
+        return dict(name="model", checkpoint_path=checkpoint_path)

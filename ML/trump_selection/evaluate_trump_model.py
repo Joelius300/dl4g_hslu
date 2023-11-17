@@ -1,10 +1,8 @@
-# TODO load the trained model and run tournaments against the GRAF baseline with ISMCTS.
-# Multi-threaded tournaments would be pretty nice.
-# The result (score) of this should also be a metric stored in DVC.
 import dvc.api
 import dvclive.live
 
-from agent_definitions import AgentDefinition, TrumpDefs, CardDefs
+from agent_definitions import TrumpDefs, CardDefs
+from agent_definition import AgentDefinition
 from tournament import tournament_multiple_sets
 
 STAGE_NAME = "evaluate_trump_model"

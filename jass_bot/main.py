@@ -3,7 +3,8 @@ import logging
 import sys
 from typing import Callable
 
-from agent_definitions import TrumpDefs, CardDefs, AgentDefinition
+from agent_definitions import TrumpDefs, CardDefs
+from agent_definition import AgentDefinition
 from jass.agents.agent_by_network import AgentByNetwork
 from jass_bot.agents.CompositeAgent import CompositeAgent
 from jass_bot.heuristics import graf

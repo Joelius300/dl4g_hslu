@@ -6,7 +6,7 @@ from typing import Callable, Optional
 
 import numpy as np
 
-from agent_definitions import AgentDefinition, create_agent
+from agent_definition import AgentDefinition, create_agent
 from jass.agents.agent import Agent
 from jass.agents.agent_cheating import AgentCheating
 from jass.arena.arena import Arena
