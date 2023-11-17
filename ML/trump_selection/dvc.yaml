@@ -37,6 +37,17 @@ stages:
     - fine_tune.early_stop_patience
     outs:
     - dvclive/artifacts/trump_selection.ckpt
+  evaluate_trump_model:
+    cmd: python evaluate_trump_model.py
+    deps:
+    - evaluate_trump_model.py
+    - dvclive/artifacts/trump_selection.ckpt
+    params:
+    - evaluate_trump_model.checkpoint_path
+    - evaluate_trump_model.time_budget
+    - evaluate_trump_model.n_sets
+    - evaluate_trump_model.points_threshold
+    - evaluate_trump_model.num_workers
 params:
 - dvclive/params.yaml
 metrics:
