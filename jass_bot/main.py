@@ -23,12 +23,12 @@ from jass.game.const import *
 from jass_bot.strategies.card_strategy import CardStrategy
 from jass_bot.strategies.trump_strategy import TrumpStrategy
 from jass_bot.agents.ISMCTS import points_div_by_max, binary_payoff
-from jass_bot.tournament import tournament_ABAB, round_robin
+from jass_bot.tournament import tournament_ABAB, round_robin_games, round_robin_sets
 
 
 def compare_trump_strategies(time_budget=0.05, n_games=100):
     random_agent = AgentRandomSchieber()
-    return round_robin(
+    return round_robin_games(
         {
             "ISMCTS w/ Graf": lambda: CompositeAgent(
                 TrumpStrategy.from_function(graf.graf_trump_selection),
@@ -48,26 +48,39 @@ def compare_trump_strategies(time_budget=0.05, n_games=100):
     )
 
 
-def compare_payoff_functions(time_budget=0.05, n_games=100):
+def compare_payoff_functions(time_budget=0.05, n_sets=10):
     payoff_functions = {
         "points-normalized": points_div_by_max,
         "binary-winner": binary_payoff,
     }
 
-    return round_robin(
+    return round_robin_sets(
         {
             name: lambda: ISMCTS(time_budget=time_budget, get_payoffs=payoff_func)
             for name, payoff_func in payoff_functions.items()
         },
-        n_games=n_games,
+        n_sets=n_sets,
     )
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
-    tournament_ABAB(
-        AgentByNetwork("http://localhost:8888/ISMCTS"), AgentRandomSchieber, n_games=3
-    )
+    # tournament_ABAB(
+    #     AgentByNetwork("http://localhost:8888/ISMCTS"), AgentRandomSchieber, n_games=3
+    # )
 
-    # compare_payoff_functions(time_budget=.1, n_games=1000)
+    compare_payoff_functions(time_budget=.01)
+
+    # time_budget = .05
+    # arena = Arena(print_every_x_games=1)
+    # a = lambda: CompositeAgent(
+    #     TrumpStrategy.from_function(graf.graf_trump_selection),
+    #     CardStrategy.from_agent(ISMCTS(time_budget)),
+    # )
+    # b = lambda: CompositeAgent(
+    #     TrumpStrategy.from_agent(AgentRandomSchieber()),
+    #     CardStrategy.from_agent(ISMCTS(time_budget)),
+    # )
+    # arena.set_players(a(), b(), a(), b())
+    # arena.play_until_point_threshold(1000)
