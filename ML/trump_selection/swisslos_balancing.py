@@ -85,4 +85,7 @@ if __name__ == "__main__":
         f"with {samples_per_trump} samples per trump and forehand/rearhand."
     )
 
+    # TODO allow customization of the path here so two balanced datasets can be generated
+    # for example for the use-case where a model is pre-trained on the entire swisslos dataset
+    # and then fine-tuned (overfit) on the top 10%
     balanced.to_csv(TRUMP_DATASET_BALANCED_PATH)

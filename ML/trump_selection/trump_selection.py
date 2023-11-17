@@ -15,6 +15,14 @@ class TrumpSelection(pl.LightningModule):
 
         self.save_hyperparameters()
 
+        # Experiments to do
+        # - Dropout
+        # - Residual connections
+        #   - First have a linear layer which projects the hand into some space with some features already (proj_dim)
+        #   - Concat that projection with the original hand to get (proj_dim + input_dim)
+        #   - Feed that to a linear layer which downprojects to proj_dim, then activation function
+        #   - Repeat last two
+        #   - Feed into classifier, again concatenating with the original hand first
         self.ll = nn.ModuleList(
             [nn.Linear(INPUT_DIM, hidden_dim)]
             + [nn.Linear(hidden_dim, hidden_dim) for _ in range(n_layers - 1)]
@@ -43,7 +51,7 @@ class TrumpSelection(pl.LightningModule):
             x = F.relu(x)
         x = self.classifier(x)
 
-        # no softmax here because of CrossEntropyLoss does that internally for better numerical stability
+        # no softmax here because CrossEntropyLoss does that internally for better numerical stability
         return x
 
     def configure_optimizers(self):
