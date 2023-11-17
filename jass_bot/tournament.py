@@ -83,11 +83,17 @@ def tournament_ABAB(
 def _run_tournament(ours: AgentDefinition, base: AgentDefinition, point_threshold: int):
     our_agent = create_agent(ours)
     base_agent = create_agent(base)
-    winner, mean_ours, mean_base, std_ours, std_base, games_played, *_ = tournament_ABAB(
-        our_agent, base_agent, point_threshold=point_threshold, save_filename=None, print_every=-1
+    winner, _mean_ours, _mean_base, std_ours, std_base, games_played, points_ours, points_base = tournament_ABAB(
+        our_agent,
+        base_agent,
+        point_threshold=point_threshold,
+        save_filename=None,
+        print_every=-1,
     )
 
-    return winner, mean_ours, mean_base, games_played
+    points_ours, points_base = np.sum(points_ours), np.sum(points_base)
+
+    return winner, points_ours, points_base, games_played
 
 
 def tournament_multiple_sets(
@@ -97,6 +103,13 @@ def tournament_multiple_sets(
     point_threshold=1000,
     num_workers=None,
 ):
+    """
+    Plays a tournament on multiple cores with n_set sets to point_threshold points.
+
+    Returns the number of wins from our agent, the number of wins from the base agent, the mean number of points our
+    agent got in one set, the mean number of points the base agent got in one set, the mean number of games in one set,
+    and the total number of games played against the base agent.
+    """
     num_workers = num_workers if num_workers is not None else os.cpu_count()
 
     with multiprocessing.Pool(num_workers) as executor:
