@@ -13,8 +13,8 @@ stages:
       size: 576493
     - path: swisslos_balancing.py
       hash: md5
-      md5: 06cb9feb52f0ab86f272e61e28c62341
-      size: 3266
+      md5: 40a10b8b711a046db011b07a41f8608b
+      size: 3502
     params:
       params.yaml:
         swisslos_balancing.n_games_threshold: 1000
@@ -39,7 +39,7 @@ stages:
       size: 5000
     params:
       params.yaml:
-        pre_train.batch_size: 200000
+        pre_train.batch_size: 500000
         pre_train.early_stop_patience: 5
         pre_train.hidden_dim: 50
         pre_train.learning_rate: 0.001
@@ -48,7 +48,7 @@ stages:
     outs:
     - path: dvclive/artifacts/trump_selection_pre_trained.ckpt
       hash: md5
-      md5: 32c2d48628f42e6126812aa46051ae8d
+      md5: 16e4ba24cbe76d4e759de17b1cb5dc89
       size: 101040
   swisslos_finetuning:
     cmd: python training.py swisslos dvclive/artifacts/trump_selection_pre_trained.ckpt
@@ -63,12 +63,12 @@ stages:
       size: 5000
     params:
       params.yaml:
-        fine_tune.batch_size: 15000
-        fine_tune.early_stop_patience: 50
+        fine_tune.batch_size: 500000
+        fine_tune.early_stop_patience: 100
         fine_tune.learning_rate: 1e-05
         fine_tune.max_epochs: 20000
     outs:
     - path: dvclive/artifacts/trump_selection.ckpt
       hash: md5
-      md5: 8e41ec421dcb7360a8fa4a9470754e45
-      size: 101040
+      md5: 61c413eed7233e5decb712f0f293613f
+      size: 13984
