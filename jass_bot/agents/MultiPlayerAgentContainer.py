@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Iterable
 
 from jass.agents.agent import Agent
 from jass.game.game_observation import GameObservation
@@ -22,6 +22,14 @@ class MultiPlayerAgentContainer(Agent):
 
     def get_player_agent(self, player: int) -> Agent:
         if player not in self.agents:
-            self.agents[player] = self.agent_factory()
+            agent = self.agent_factory()
+            assert agent is not None and isinstance(agent, Agent), "agent factory returned no or invalid agent"
+            self.agents[player] = agent
 
         return self.agents[player]
+
+    @classmethod
+    def from_agents(cls, agents: Iterable[Agent]):
+        iterator = iter(agents)
+        # will keep on taking from the agents iterable until consumed.
+        return MultiPlayerAgentContainer(iterator.__next__)

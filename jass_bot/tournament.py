@@ -1,10 +1,12 @@
 import concurrent.futures
-import itertools
+import multiprocessing
+from itertools import repeat, combinations
 import os
 from typing import Callable, Optional
 
 import numpy as np
 
+from agent_definitions import AgentDefinition, create_agent
 from jass.agents.agent import Agent
 from jass.agents.agent_cheating import AgentCheating
 from jass.arena.arena import Arena
@@ -60,35 +62,57 @@ def tournament_ABAB(
     std_ours: float = arena.points_team_0.std()
     std_base: float = arena.points_team_1.std()
     games_played = arena.nr_games_played
-    print(f"Winner: {winner} ({('ours' if winner == 0 else 'base')}) after {games_played} games")
+    print(
+        f"Winner: {winner} ({('ours' if winner == 0 else 'base')}) after {games_played} games"
+    )
     print(f"Avg Points Team 0 (ours): {mean_ours:.2f} with std {std_ours:.2f}")
     print(f"Avg Points Team 1 (base): {mean_base:.2f} with std {std_base:.2f}")
 
-    return winner, mean_ours, mean_base, std_ours, std_base, games_played, arena.points_team_0, arena.points_team_1
+    return (
+        winner,
+        mean_ours,
+        mean_base,
+        std_ours,
+        std_base,
+        games_played,
+        arena.points_team_0,
+        arena.points_team_1,
+    )
+
+
+def _run_tournament(ours: AgentDefinition, base: AgentDefinition, point_threshold: int):
+    our_agent = create_agent(ours)
+    base_agent = create_agent(base)
+    winner, mean_ours, mean_base, std_ours, std_base, games_played, *_ = tournament_ABAB(
+        our_agent, base_agent, point_threshold=point_threshold, save_filename=None, print_every=-1
+    )
+
+    return winner, mean_ours, mean_base, games_played
 
 
 def tournament_multiple_sets(
-    ours: type | Callable[[], Agent | AgentCheating],
-    base: type | Callable[[], Agent | AgentCheating],
+    ours: AgentDefinition,
+    base: AgentDefinition,
     n_sets: int,
     point_threshold=1000,
     num_workers=None,
 ):
     num_workers = num_workers if num_workers is not None else os.cpu_count()
 
-    def run_tournament(_i):
-        winner, mean_ours, mean_base, games_played, *_ = tournament_ABAB(ours, base, point_threshold=point_threshold, save_filename=None)
-        return winner, mean_ours, mean_base, games_played
-
-    with concurrent.futures.ProcessPoolExecutor(max_workers=num_workers) as executor:
-        results = list(executor.map(run_tournament, range(n_sets)))
+    with multiprocessing.Pool(num_workers) as executor:
+        results = list(
+            executor.starmap(
+                _run_tournament,
+                repeat((ours, base, point_threshold), n_sets),
+            )
+        )
         results = np.array(results)
         wins_1 = np.count_nonzero(results[:, 0])
         wins_0 = results.shape[0] - wins_1
         n_games = results[:, 3]
-        total_games = np.sum(n_games)
+        total_games = int(np.sum(n_games))
         avg_games_played = np.mean(n_games)
-        means = (results[:, [1, 2]] * n_games / total_games).ravel()
+        means = np.sum(results[:, [1, 2]].T * n_games / total_games, axis=1)
 
         return wins_0, wins_1, means[0], means[1], avg_games_played, total_games
 
@@ -100,7 +124,7 @@ def round_robin_games(
 ):
     scores = {}
     matchups = {}
-    for [a, b] in itertools.combinations(players.keys(), 2):
+    for [a, b] in combinations(players.keys(), 2):
         print(f"{a} vs. {b}")
         _, mean_a, mean_b, std, *_ = tournament_ABAB(
             players[a], players[b], n_games=n_games, **kwargs
@@ -136,13 +160,13 @@ def round_robin_games(
 
 
 def round_robin_sets(
-        players: dict[str, type | Callable[[], Agent | AgentCheating]],
-        n_sets: int,
-        **kwargs,
+    players: dict[str, AgentDefinition],
+    n_sets: int,
+    **kwargs,
 ):
     scores = {}
     matchups = {}
-    for [a, b] in itertools.combinations(players.keys(), 2):
+    for [a, b] in combinations(players.keys(), 2):
         print(f"{a} vs. {b}")
         wins_a, wins_b, mean_a, mean_b, games_avg, games_total = tournament_multiple_sets(
             players[a], players[b], n_sets=n_sets, **kwargs
@@ -170,12 +194,19 @@ def round_robin_sets(
     print(f"Best player is {best_player} who scored as follows:")
     # order by our wins ascending which should roughly give an ordering of the next best players ascending
     # (it's more intuitive to see the first listed opponent and think that's best of them, instead of the easiest)
-    for opponent, (wins_best, wins_opp, score_best, score_opp, games_avg, games_total) in sorted(
-            matchups[best_player].items(), key=lambda m: m[1][0]
-    ):
+    for opponent, (
+        wins_best,
+        wins_opp,
+        score_best,
+        score_opp,
+        games_avg,
+        games_total,
+    ) in sorted(matchups[best_player].items(), key=lambda m: m[1][0]):
         win_rate = wins_best / (wins_best + wins_opp)
-        print(f"  vs. {opponent}: {wins_best} to {wins_opp} wins ({win_rate:.2%}) "
-              f"(scores {score_best:.2f} to {score_opp:.2f}) "
-              f"with avg set length {games_avg} and total games played {games_total}")
+        print(
+            f"  vs. {opponent}: {wins_best} to {wins_opp} wins ({win_rate:.2%}) "
+            f"(scores {score_best:.2f} to {score_opp:.2f}) "
+            f"with avg set length {games_avg:.2f} and total games played {games_total}"
+        )
 
     return scores, matchups

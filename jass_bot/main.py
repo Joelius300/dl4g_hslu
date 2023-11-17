@@ -3,6 +3,7 @@ import logging
 import sys
 from typing import Callable
 
+from agent_definitions import TrumpDefs, CardDefs, AgentDefinition
 from jass.agents.agent_by_network import AgentByNetwork
 from jass_bot.agents.CompositeAgent import CompositeAgent
 from jass_bot.heuristics import graf
@@ -26,40 +27,38 @@ from jass_bot.agents.ISMCTS import points_div_by_max, binary_payoff
 from jass_bot.tournament import tournament_ABAB, round_robin_games, round_robin_sets
 
 
-def compare_trump_strategies(time_budget=0.05, n_games=100):
-    random_agent = AgentRandomSchieber()
-    return round_robin_games(
+def compare_trump_strategies(time_budget=0.05, n_sets=100):
+    return round_robin_sets(
         {
-            "ISMCTS w/ Graf": lambda: CompositeAgent(
-                TrumpStrategy.from_function(graf.graf_trump_selection),
-                CardStrategy.from_agent(ISMCTS(time_budget)),
+            "ISMCTS w/ Graf": AgentDefinition(
+                TrumpDefs.graf(), CardDefs.ISMCTS(time_budget), True
             ),
-            "ISMCTS w/ Random": lambda: CompositeAgent(
-                TrumpStrategy.from_agent(random_agent),
-                CardStrategy.from_agent(ISMCTS(time_budget)),
+            "ISMCTS w/ Random": AgentDefinition(
+                TrumpDefs.random(), CardDefs.ISMCTS(time_budget), True
             ),
-            "Random w/ Graf": lambda: CompositeAgent(
-                TrumpStrategy.from_function(graf.graf_trump_selection),
-                CardStrategy.from_agent(random_agent),
+            "Random w/ Graf": AgentDefinition(
+                TrumpDefs.graf(), CardDefs.random(), False
             ),
-            "Random w/ Random": AgentRandomSchieber,
+            "Random w/ Random": AgentDefinition(
+                TrumpDefs.random(), CardDefs.random(), False
+            ),
         },
-        n_games=n_games,
+        n_sets=n_sets,
     )
 
 
-def compare_payoff_functions(time_budget=0.05, n_sets=10):
+def compare_payoff_functions(time_budget=0.05, n_games=100):
     payoff_functions = {
         "points-normalized": points_div_by_max,
         "binary-winner": binary_payoff,
     }
 
-    return round_robin_sets(
+    return round_robin_games(
         {
             name: lambda: ISMCTS(time_budget=time_budget, get_payoffs=payoff_func)
             for name, payoff_func in payoff_functions.items()
         },
-        n_sets=n_sets,
+        n_games=n_games,
     )
 
 
@@ -70,7 +69,8 @@ if __name__ == "__main__":
     #     AgentByNetwork("http://localhost:8888/ISMCTS"), AgentRandomSchieber, n_games=3
     # )
 
-    compare_payoff_functions(time_budget=.01)
+    # compare_payoff_functions(time_budget=0.01)
+    compare_trump_strategies(0.05, n_sets=10)
 
     # time_budget = .05
     # arena = Arena(print_every_x_games=1)
