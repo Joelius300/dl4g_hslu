@@ -70,5 +70,5 @@ stages:
     outs:
     - path: dvclive/artifacts/trump_selection.ckpt
       hash: md5
-      md5: 61c413eed7233e5decb712f0f293613f
-      size: 13984
+      md5: a442d065ae8083974bc21e8a81daf013
+      size: 101040
