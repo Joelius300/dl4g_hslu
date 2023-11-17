@@ -47,7 +47,6 @@ stages:
     - evaluate_trump_model.time_budget
     - evaluate_trump_model.n_sets
     - evaluate_trump_model.points_threshold
-    - evaluate_trump_model.num_workers
 params:
 - dvclive/params.yaml
 metrics:
