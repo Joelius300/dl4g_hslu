@@ -26,6 +26,7 @@ def train(
     early_stop_patience=5,
     log_every_n_steps=5,
     checkpoint_filename=MODEL_NAME,
+    resume_checkpoint_path=None,
 ):
     seed_everything(42)
 
@@ -63,10 +64,11 @@ def train(
         # logger.log_hyperparams(model.hparams)
         # logger.log_hyperparams(dm.hparams)
         # the loggers that support it usually have an option to do so automatically = probably also not needed
+        # but needs an example_input_array on the model
         # logger.log_graph(model, model.example_input_array)
         pass
 
-    trainer.fit(model, dm)
+    trainer.fit(model, dm, ckpt_path=resume_checkpoint_path)
 
 
 def get_graf_datamodule(batch_size: int, num_workers=4):
@@ -136,4 +138,4 @@ if __name__ == "__main__":
     )
 
     next_checkpoint_path = MODEL_NAME + ("_pre_trained" if pre_train else "")
-    train(model, dm, max_epochs, early_stop_patience, 5 if graf else 1, next_checkpoint_path)
+    train(model, dm, max_epochs, early_stop_patience, 5 if graf else 1, next_checkpoint_path, checkpoint_path)
