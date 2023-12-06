@@ -8,12 +8,13 @@ from jass_bot.tournament import tournament_multiple_sets
 STAGE_NAME = "evaluate_trump_model"
 
 if __name__ == "__main__":
-    params = dvc.api.params_show(STAGE_NAME)[STAGE_NAME]
+    params = dvc.api.params_show(stages=STAGE_NAME)[STAGE_NAME]
     time_budget = params["time_budget"]
     n_sets = params["n_sets"]
     checkpoint_path = params["checkpoint_path"]
     point_threshold = params.get("point_threshold", 1000)
     num_workers = params.get("num_workers", None)
+    num_workers = None if num_workers == -1 else num_workers
     ismcts = CardDefs.ISMCTS(time_budget)
     base = AgentDefinition(TrumpDefs.graf(), ismcts, True)
 

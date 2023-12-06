@@ -112,22 +112,30 @@ def tournament_multiple_sets(
     """
     num_workers = num_workers if num_workers is not None else os.cpu_count()
 
-    with multiprocessing.Pool(num_workers) as executor:
-        results = list(
-            executor.starmap(
-                _run_tournament,
-                repeat((ours, base, point_threshold), n_sets),
+    if num_workers == 0:
+        # run on this thread
+        results = []
+        for _ in range(n_sets):
+            results.append(_run_tournament(ours, base, point_threshold))
+    else:
+        # open new processes and do multiprocessing
+        with multiprocessing.Pool(num_workers) as executor:
+            results = list(
+                executor.starmap(
+                    _run_tournament,
+                    repeat((ours, base, point_threshold), n_sets),
+                )
             )
-        )
-        results = np.array(results)
-        wins_1 = np.count_nonzero(results[:, 0])
-        wins_0 = results.shape[0] - wins_1
-        n_games = results[:, 3]
-        total_games = int(np.sum(n_games))
-        avg_games_played = np.mean(n_games)
-        means = np.sum(results[:, [1, 2]].T * n_games / total_games, axis=1)
 
-        return wins_0, wins_1, means[0], means[1], avg_games_played, total_games
+    results = np.array(results)
+    wins_1 = np.count_nonzero(results[:, 0])
+    wins_0 = results.shape[0] - wins_1
+    n_games = results[:, 3]
+    total_games = int(np.sum(n_games))
+    avg_games_played = np.mean(n_games)
+    means = np.sum(results[:, [1, 2]].T * n_games / total_games, axis=1)
+
+    return wins_0, wins_1, means[0], means[1], avg_games_played, total_games
 
 
 def round_robin_games(
