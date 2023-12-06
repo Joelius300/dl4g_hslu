@@ -1,8 +1,8 @@
 from collections import namedtuple
 
-from agent_definitions import get_trump_strat, get_card_strat
-from agents.CompositeAgent import CompositeAgent
-from agents.MultiPlayerAgentContainer import MultiPlayerAgentContainer
+from jass_bot.agent_definitions import get_trump_strat, get_card_strat
+from jass_bot.agents.CompositeAgent import CompositeAgent
+from jass_bot.agents.MultiPlayerAgentContainer import MultiPlayerAgentContainer
 from jass.agents.agent import Agent
 
 AgentDefinition = namedtuple("AgentDefinition", ["trump", "card", "needs_user_wrapper"])

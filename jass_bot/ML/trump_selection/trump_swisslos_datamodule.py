@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 
 from jass.game.const import card_strings
-from trump_dataset import TrumpDataset
+from jass_bot.ML.trump_selection.trump_dataset import TrumpDataset
 
 
 class TrumpSwisslosDataModule(pl.LightningDataModule):

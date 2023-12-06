@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from jass.game.game_util import get_cards_encoded
-from trump_dataset import TrumpDataset
+from jass_bot.ML.trump_selection.trump_dataset import TrumpDataset
 
 
 class TrumpGrafDataModule(pl.LightningDataModule):

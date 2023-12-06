@@ -2,10 +2,10 @@ import numpy as np
 import torch
 import lightning as pl
 
-from ML.trump_selection.trump_selection import TrumpSelection
+from jass_bot.ML.trump_selection.trump_selection import TrumpSelection
 from jass.game.const import PUSH_ALT, PUSH
 from jass.game.game_observation import GameObservation
-from strategies.trump_strategy import TrumpStrategy
+from jass_bot.strategies.trump_strategy import TrumpStrategy
 
 
 class ModelTrumpStrategy(TrumpStrategy):

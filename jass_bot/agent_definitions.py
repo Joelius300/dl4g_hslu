@@ -1,9 +1,9 @@
-from ML.trump_selection.model_trump_strategy import ModelTrumpStrategy
-from agents.ISMCTS import ISMCTS
-from heuristics import graf
+from jass_bot.ML.trump_selection.model_trump_strategy import ModelTrumpStrategy
+from jass_bot.agents.ISMCTS import ISMCTS
+from jass_bot.heuristics import graf
 from jass.agents.agent_random_schieber import AgentRandomSchieber
-from strategies.card_strategy import CardStrategy
-from strategies.trump_strategy import TrumpStrategy
+from jass_bot.strategies.card_strategy import CardStrategy
+from jass_bot.strategies.trump_strategy import TrumpStrategy
 
 
 def get_trump_strat(trump_def: dict) -> TrumpStrategy:

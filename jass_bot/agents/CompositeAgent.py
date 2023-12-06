@@ -1,7 +1,7 @@
 from jass.agents.agent import Agent
 from jass.game.game_observation import GameObservation
-from strategies.card_strategy import CardStrategy
-from strategies.trump_strategy import TrumpStrategy
+from jass_bot.strategies.card_strategy import CardStrategy
+from jass_bot.strategies.trump_strategy import TrumpStrategy
 
 
 class CompositeAgent(Agent):

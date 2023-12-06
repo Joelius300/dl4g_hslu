@@ -8,9 +8,9 @@ from lightning import seed_everything
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint, EarlyStopping
 from lightning.pytorch.loggers import TensorBoardLogger
 
-from trump_graf_datamodule import TrumpGrafDataModule
-from trump_swisslos_datamodule import TrumpSwisslosDataModule
-from trump_selection import TrumpSelection
+from jass_bot.ML.trump_selection.trump_graf_datamodule import TrumpGrafDataModule
+from jass_bot.ML.trump_selection.trump_swisslos_datamodule import TrumpSwisslosDataModule
+from jass_bot.ML.trump_selection.trump_selection import TrumpSelection
 
 from dvclive.lightning import DVCLiveLogger
 
