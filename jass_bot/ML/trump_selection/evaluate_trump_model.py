@@ -29,9 +29,9 @@ if __name__ == "__main__":
     ) = tournament_multiple_sets(ours, base, n_sets, point_threshold, num_workers)
 
     # this should log to the current experiment if there is one but not if there isn't. Not sure if this is correct.
-    live = dvclive.Live(resume=True, save_dvc_exp=False)
-    live.log_metric("win_rate", wins_ours / (wins_ours + wins_base))
-    live.log_metric("mean_points", means_ours)
-    live.log_metric("mean_points_graf", means_base)
-    live.log_metric("avg_set_length", avg_games_played)
-    live.log_metric("total_games", total_games)
+    with dvclive.Live() as live:
+        live.log_metric("win_rate", wins_ours / (wins_ours + wins_base))
+        live.log_metric("mean_points", means_ours)
+        live.log_metric("mean_points_graf", means_base)
+        live.log_metric("avg_set_length", avg_games_played)
+        live.log_metric("total_games", total_games)

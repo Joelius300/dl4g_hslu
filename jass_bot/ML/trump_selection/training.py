@@ -58,14 +58,6 @@ def train(
         precision="16-mixed",
     )
 
-    for logger in trainer.loggers:
-        # log_hyperparams not needed when you have save_hyperparams apparently
-        # logger.log_hyperparams(model.hparams)
-        # logger.log_hyperparams(dm.hparams)
-        # the loggers that support it usually have an option to do so automatically = probably also not needed
-        # logger.log_graph(model, model.example_input_array)
-        pass
-
     trainer.fit(model, dm)
 
 
