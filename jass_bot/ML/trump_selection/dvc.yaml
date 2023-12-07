@@ -48,3 +48,14 @@ stages:
     - evaluate_trump_model.n_sets
     - evaluate_trump_model.points_threshold
     - evaluate_trump_model.num_workers
+params:
+- dvclive/params.yaml
+metrics:
+- dvclive/metrics.json
+plots:
+- dvclive/plots/metrics:
+    x: step
+artifacts:
+  best:
+    path: dvclive/artifacts/trump_selection.ckpt
+    type: model
