@@ -1,7 +1,7 @@
 {
-    "win_rate": 0.375,
-    "mean_points": 933.21529562982,
-    "mean_points_graf": 983.6780205655527,
-    "avg_set_length": 12.15625,
-    "total_games": 1556
+    "win_rate": 0.125,
+    "mean_points": 826.048,
+    "mean_points_graf": 1026.552,
+    "avg_set_length": 11.71875,
+    "total_games": 375
 }

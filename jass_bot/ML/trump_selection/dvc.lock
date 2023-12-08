@@ -35,20 +35,20 @@ stages:
       nfiles: 52
     - path: training.py
       hash: md5
-      md5: ad7475e109bb4601996120ed82fb8188
-      size: 4691
+      md5: da49264c2766722337e192abc6cc2de1
+      size: 4743
     params:
       params.yaml:
         pre_train.batch_size: 500000
         pre_train.early_stop_patience: 5
         pre_train.hidden_dim: 50
         pre_train.learning_rate: 0.001
-        pre_train.max_epochs: 150
+        pre_train.max_epochs: 5
         pre_train.n_layers: 3
     outs:
     - path: dvclive/artifacts/trump_selection_pre_trained.ckpt
       hash: md5
-      md5: 5027c4cb9a6f9e46989cd4ab919c1c7f
+      md5: 99369049e8b01296d888af6da4283500
       size: 101040
   swisslos_finetuning:
     cmd: python training.py swisslos dvclive/artifacts/trump_selection_pre_trained.ckpt
@@ -59,34 +59,34 @@ stages:
       size: 1014854
     - path: training.py
       hash: md5
-      md5: ad7475e109bb4601996120ed82fb8188
-      size: 4691
+      md5: da49264c2766722337e192abc6cc2de1
+      size: 4743
     params:
       params.yaml:
         fine_tune.batch_size: 500000
         fine_tune.early_stop_patience: 100
         fine_tune.learning_rate: 1e-05
-        fine_tune.max_epochs: 20000
+        fine_tune.max_epochs: 25
     outs:
     - path: dvclive/artifacts/trump_selection.ckpt
       hash: md5
-      md5: 36f5e1b4355a88b341d1043999594374
-      size: 101040
+      md5: 3188adb736d68a83561a6f1cbce6e490
+      size: 35960
   evaluate_trump_model:
     cmd: python evaluate_trump_model.py
     deps:
     - path: dvclive/artifacts/trump_selection.ckpt
       hash: md5
-      md5: 36f5e1b4355a88b341d1043999594374
-      size: 101040
+      md5: 3188adb736d68a83561a6f1cbce6e490
+      size: 35960
     - path: evaluate_trump_model.py
       hash: md5
-      md5: de1e8659fa33173a9c061f4bf4c17c82
-      size: 1456
+      md5: 515a567d749e0174856ef07b5406421f
+      size: 1467
     params:
       params.yaml:
         evaluate_trump_model.checkpoint_path: dvclive/artifacts/trump_selection.ckpt
-        evaluate_trump_model.n_sets: 128
+        evaluate_trump_model.n_sets: 32
         evaluate_trump_model.num_workers: 16
         evaluate_trump_model.points_threshold: 1000
         evaluate_trump_model.time_budget: 0.1
