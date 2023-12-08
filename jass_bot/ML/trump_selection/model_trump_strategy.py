@@ -11,15 +11,16 @@ from jass_bot.strategies.trump_strategy import TrumpStrategy
 class ModelTrumpStrategy(TrumpStrategy):
     def __init__(self, checkpoint_path: str):
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model: pl.LightningModule = TrumpSelection.load_from_checkpoint(checkpoint_path)
+        self.model: pl.LightningModule = TrumpSelection.load_from_checkpoint(checkpoint_path, device)
         self.model.eval()
-        self.model.to(device)
 
     def obs_to_tensor(self, obs: GameObservation) -> torch.Tensor:
         hand_one_hot = obs.hand
         fh = obs.forehand == -1
+        fh_arr = np.array([int(fh)])
+        cat = np.concatenate([hand_one_hot, fh_arr])
 
-        return torch.Tensor(np.concatenate(hand_one_hot, np.array([int(fh)])))
+        return torch.tensor(cat, dtype=torch.float32)
 
     def y_to_trump(self, y: torch.Tensor):
         y = y.softmax(dim=-1)
