@@ -26,6 +26,7 @@ def train(
     early_stop_patience=5,
     log_every_n_steps=5,
     checkpoint_filename=MODEL_NAME,
+    clear=False,
 ):
     seed_everything(42)
 
@@ -42,7 +43,7 @@ def train(
     )
     loggers = [
         TensorBoardLogger(save_dir="lightning_logs", name=MODEL_NAME, log_graph=True),
-        DVCLiveLogger(run_name=MODEL_NAME, log_model=True),
+        DVCLiveLogger(run_name=MODEL_NAME, log_model=True, resume=not clear),
     ]
 
     trainer = pl.Trainer(
@@ -128,4 +129,4 @@ if __name__ == "__main__":
     )
 
     next_checkpoint_path = MODEL_NAME + ("_pre_trained" if pre_train else "")
-    train(model, dm, max_epochs, early_stop_patience, 5 if graf else 1, next_checkpoint_path)
+    train(model, dm, max_epochs, early_stop_patience, 5 if graf else 1, next_checkpoint_path, clear=pre_train)
