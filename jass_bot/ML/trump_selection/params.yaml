@@ -8,18 +8,18 @@ pre_train:
   n_layers: 3
   learning_rate: 1e-3
   batch_size: 500000
-  max_epochs: 5
+  max_epochs: 150
   early_stop_patience: 5
 
 fine_tune:
   learning_rate: 1e-5
   batch_size: 500000
-  max_epochs: 25
+  max_epochs: 10000
   early_stop_patience: 100
 
 evaluate_trump_model:
   checkpoint_path: dvclive/artifacts/trump_selection.ckpt
   time_budget: 0.1
-  n_sets: 32
+  n_sets: 128
   points_threshold: 1000
   num_workers: 16
