@@ -72,3 +72,21 @@ stages:
       hash: md5
       md5: 36f5e1b4355a88b341d1043999594374
       size: 101040
+  evaluate_trump_model:
+    cmd: python evaluate_trump_model.py
+    deps:
+    - path: dvclive/artifacts/trump_selection.ckpt
+      hash: md5
+      md5: 36f5e1b4355a88b341d1043999594374
+      size: 101040
+    - path: evaluate_trump_model.py
+      hash: md5
+      md5: de1e8659fa33173a9c061f4bf4c17c82
+      size: 1456
+    params:
+      params.yaml:
+        evaluate_trump_model.checkpoint_path: dvclive/artifacts/trump_selection.ckpt
+        evaluate_trump_model.n_sets: 128
+        evaluate_trump_model.num_workers: 16
+        evaluate_trump_model.points_threshold: 1000
+        evaluate_trump_model.time_budget: 0.1

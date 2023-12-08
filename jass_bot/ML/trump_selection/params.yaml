@@ -22,4 +22,4 @@ evaluate_trump_model:
   time_budget: 0.1
   n_sets: 128
   points_threshold: 1000
-  num_workers: 0
+  num_workers: 16
