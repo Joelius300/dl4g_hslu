@@ -1,6 +1,6 @@
 stages:
   swisslos_balancing:
-    cmd: python swisslos_balancing.py
+    cmd: python -OO swisslos_balancing.py
     deps:
     - swisslos_balancing.py
     - data/2018_10_18_trump.csv
@@ -12,7 +12,7 @@ stages:
     outs:
     - data/swisslos_balanced.csv
   graf_pretrain:
-    cmd: python training.py graf
+    cmd: python -OO training.py graf
     deps:
     - training.py
     - data/graf-dataset-balanced
@@ -26,7 +26,7 @@ stages:
     outs:
     - dvclive/artifacts/trump_selection_pre_trained.ckpt
   swisslos_finetuning:
-    cmd: python training.py swisslos dvclive/artifacts/trump_selection_pre_trained.ckpt
+    cmd: python -OO training.py swisslos dvclive/artifacts/trump_selection_pre_trained.ckpt
     deps:
     - training.py
     - data/swisslos_balanced.csv
@@ -38,7 +38,7 @@ stages:
     outs:
     - dvclive/artifacts/trump_selection.ckpt
   evaluate_trump_model:
-    cmd: python evaluate_trump_model.py
+    cmd: python -OO evaluate_trump_model.py
     deps:
     - evaluate_trump_model.py
     - dvclive/artifacts/trump_selection.ckpt
