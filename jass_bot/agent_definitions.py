@@ -4,24 +4,54 @@ from jass_bot.heuristics import graf
 from jass.agents.agent_random_schieber import AgentRandomSchieber
 from jass_bot.strategies.card_strategy import CardStrategy
 from jass_bot.strategies.trump_strategy import TrumpStrategy
+from strategies.fallback_card_strategy import FallbackCardStrategy
+from strategies.fallback_trump_strategy import FallbackTrumpStrategy
 
 
-def get_trump_strat(trump_def: dict) -> TrumpStrategy:
+def _just_fail(_obs):
+    raise Exception("Just fail :)")
+
+
+def get_trump_strat(trump_def: dict, with_random_fallback=False) -> TrumpStrategy:
     name = trump_def["name"]
     if name == "random":
-        return TrumpStrategy.from_agent(AgentRandomSchieber())
+        strat = TrumpStrategy.from_agent(AgentRandomSchieber())
+        with_random_fallback = False
     elif name == "graf":
-        return TrumpStrategy.from_function(graf.graf_trump_selection)
+        strat = TrumpStrategy.from_function(graf.graf_trump_selection)
     elif name == "model":
-        return ModelTrumpStrategy(trump_def["checkpoint_path"])
+        strat = ModelTrumpStrategy(trump_def["checkpoint_path"])
+    elif name == "just_fail":
+        strat = TrumpStrategy.from_function(_just_fail)
+    else:
+        raise ValueError(f"Invalid trump strat {name}")
+
+    if not with_random_fallback:
+        return strat
+
+    return FallbackTrumpStrategy(
+        strat, TrumpStrategy.from_agent(AgentRandomSchieber()), fallback_name="random"
+    )
 
 
-def get_card_strat(card_def: dict) -> CardStrategy:
+def get_card_strat(card_def: dict, with_random_fallback=False) -> CardStrategy:
     name = card_def["name"]
     if name == "random":
-        return CardStrategy.from_agent(AgentRandomSchieber())
+        strat = CardStrategy.from_agent(AgentRandomSchieber())
+        with_random_fallback = False
     elif name == "ISMCTS":
-        return CardStrategy.from_agent(ISMCTS(time_budget=card_def["time_budget"]))
+        strat = CardStrategy.from_agent(ISMCTS(time_budget=card_def["time_budget"]))
+    elif name == "just_fail":
+        strat = CardStrategy.from_function(_just_fail)
+    else:
+        raise ValueError(f"Invalid card strat {name}")
+
+    if not with_random_fallback:
+        return strat
+
+    return FallbackCardStrategy(
+        strat, CardStrategy.from_agent(AgentRandomSchieber()), fallback_name="random"
+    )
 
 
 class CardDefs:
@@ -32,6 +62,10 @@ class CardDefs:
     @classmethod
     def ISMCTS(cls, time_budget: float):
         return dict(name="ISMCTS", time_budget=time_budget)
+
+    @classmethod
+    def just_fail(cls):
+        return dict(name="just_fail")
 
 
 class TrumpDefs:
@@ -46,3 +80,7 @@ class TrumpDefs:
     @classmethod
     def model(cls, checkpoint_path):
         return dict(name="model", checkpoint_path=checkpoint_path)
+
+    @classmethod
+    def just_fail(cls):
+        return dict(name="just_fail")

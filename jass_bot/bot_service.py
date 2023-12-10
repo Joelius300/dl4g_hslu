@@ -22,6 +22,7 @@ def create_app():
     app = PlayerServiceApp(FLASK_PACKAGE_NAME)
 
     app.add_player("random", AgentRandomSchieber())
+    # TODO add random fallback
     app.add_player("ISMCTS", MultiPlayerAgentContainer(lambda: ISMCTS(time_budget)))
 
     return app

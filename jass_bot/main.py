@@ -37,14 +37,30 @@ def compare_trump_strategies(time_budget=0.05, n_sets=100):
             "ISMCTS w/ Random": AgentDefinition(
                 TrumpDefs.random(), CardDefs.ISMCTS(time_budget), True
             ),
-            "Random w/ Graf": AgentDefinition(
-                TrumpDefs.graf(), CardDefs.random(), False
-            ),
-            "Random w/ Random": AgentDefinition(
-                TrumpDefs.random(), CardDefs.random(), False
-            ),
+            "Random w/ Graf": AgentDefinition(TrumpDefs.graf(), CardDefs.random(), False),
+            "Random w/ Random": AgentDefinition(TrumpDefs.random(), CardDefs.random(), False),
         },
         n_sets=n_sets,
+    )
+
+
+def check_failing():
+    return round_robin_sets(
+        {
+            "Random": AgentDefinition(
+                TrumpDefs.random(),
+                CardDefs.random(),
+            ),
+            "Failing Trump": AgentDefinition(
+                TrumpDefs.just_fail(),
+                CardDefs.random(),
+            ),
+            "Failing Card": AgentDefinition(
+                TrumpDefs.random(),
+                CardDefs.just_fail(),
+            ),
+        },
+        n_sets=2,
     )
 
 
@@ -71,7 +87,8 @@ if __name__ == "__main__":
     # )
 
     # compare_payoff_functions(time_budget=0.01)
-    compare_trump_strategies(0.05, n_sets=10)
+    # compare_trump_strategies(0.05, n_sets=10)
+    check_failing()
 
     # time_budget = .05
     # arena = Arena(print_every_x_games=1)

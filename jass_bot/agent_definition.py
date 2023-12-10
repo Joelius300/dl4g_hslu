@@ -5,13 +5,20 @@ from jass_bot.agents.CompositeAgent import CompositeAgent
 from jass_bot.agents.MultiPlayerAgentContainer import MultiPlayerAgentContainer
 from jass.agents.agent import Agent
 
-AgentDefinition = namedtuple("AgentDefinition", ["trump", "card", "needs_user_wrapper"])
+AgentDefinition = namedtuple(
+    "AgentDefinition", ["trump", "card", "needs_user_wrapper", "random_fallback"],
+    defaults=[False, True],  # defaults apply from left to right but right-aligned
+)
 
 
 def create_agent(definition: AgentDefinition) -> Agent:
-    trump, card, needs_wrapper = definition
+    trump, card, needs_wrapper, random_fallback = definition
     MAX_AGENTS_NEEDED = 4  # an agent that needs to handle all 4 players
-    agent_generator = (CompositeAgent(get_trump_strat(trump), get_card_strat(card)) for _ in range(MAX_AGENTS_NEEDED))
+    agent_generator = (
+        CompositeAgent(get_trump_strat(trump, random_fallback), get_card_strat(card, random_fallback))
+        for _ in range(MAX_AGENTS_NEEDED)
+    )
+
     if needs_wrapper:
         agent = MultiPlayerAgentContainer.from_agents(agent_generator)
     else:
