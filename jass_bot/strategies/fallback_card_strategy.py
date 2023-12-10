@@ -1,7 +1,7 @@
 from logging import Logger
 
 from jass.game.game_observation import GameObservation
-from strategies.card_strategy import CardStrategy
+from jass_bot.strategies.card_strategy import CardStrategy
 
 
 class FallbackCardStrategy(CardStrategy):

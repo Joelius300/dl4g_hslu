@@ -4,8 +4,8 @@ from jass_bot.heuristics import graf
 from jass.agents.agent_random_schieber import AgentRandomSchieber
 from jass_bot.strategies.card_strategy import CardStrategy
 from jass_bot.strategies.trump_strategy import TrumpStrategy
-from strategies.fallback_card_strategy import FallbackCardStrategy
-from strategies.fallback_trump_strategy import FallbackTrumpStrategy
+from jass_bot.strategies.fallback_card_strategy import FallbackCardStrategy
+from jass_bot.strategies.fallback_trump_strategy import FallbackTrumpStrategy
 
 
 def _just_fail(_obs):

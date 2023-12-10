@@ -1,7 +1,7 @@
 from logging import Logger
 
 from jass.game.game_observation import GameObservation
-from strategies.trump_strategy import TrumpStrategy
+from jass_bot.strategies.trump_strategy import TrumpStrategy
 
 
 class FallbackTrumpStrategy(TrumpStrategy):
