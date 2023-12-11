@@ -4,7 +4,7 @@ swisslos_balancing:
   random_state: 42
 
 pre_train:
-  hidden_dim: 50
+  hidden_dim: 25
   n_layers: 3
   learning_rate: 1e-3
   batch_size: 500000
@@ -19,7 +19,7 @@ fine_tune:
 
 evaluate_trump_model:
   checkpoint_path: dvclive/artifacts/trump_selection.ckpt
-  time_budget: 0.1
+  time_budget: 0.05
   n_sets: 128
   points_threshold: 1000
-  num_workers: 16
+  num_workers: 2
