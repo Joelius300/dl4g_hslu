@@ -19,7 +19,7 @@ fine_tune:
 
 evaluate_trump_model:
   checkpoint_path: dvclive/artifacts/trump_selection.ckpt
-  time_budget: 0.1
+  time_budget: 0.05
   n_sets: 128
   points_threshold: 1000
-  num_workers: 16
+  num_workers: 2
