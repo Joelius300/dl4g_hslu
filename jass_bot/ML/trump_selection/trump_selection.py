@@ -12,7 +12,7 @@ N_CLASSES = 7  # all trumps + push
 class TrumpSelection(pl.LightningModule):
     def __init__(
         self,
-        hidden_dim_factor: int,
+        hidden_dim: int,
         n_layers: int,
         learning_rate: float,
         dropout_rate: float = 0,
@@ -20,9 +20,6 @@ class TrumpSelection(pl.LightningModule):
         super().__init__()
 
         self.save_hyperparameters()
-
-        self.hidden_dim_factor = hidden_dim_factor
-        hidden_dim = hidden_dim_factor * INPUT_DIM
 
         # Experiments to do
         # - Dropout
@@ -34,10 +31,10 @@ class TrumpSelection(pl.LightningModule):
         #   - Feed into classifier, again concatenating with the original hand first
         self.ll = nn.ModuleList(
             [nn.Linear(INPUT_DIM, hidden_dim)]
-            + [nn.Linear(hidden_dim, hidden_dim) for _ in range(n_layers - 1)]
+            + [nn.Linear(hidden_dim + INPUT_DIM, hidden_dim) for _ in range(n_layers - 1)]
         )
 
-        self.classifier = nn.Linear(hidden_dim, N_CLASSES)
+        self.classifier = nn.Linear(hidden_dim + INPUT_DIM, N_CLASSES)
         self.dropout = nn.Dropout(dropout_rate)
         self.criterion = nn.CrossEntropyLoss()
 
@@ -57,12 +54,11 @@ class TrumpSelection(pl.LightningModule):
         )
 
     def forward(self, x: torch.Tensor):
-        orig = torch.concat([x] * self.hidden_dim_factor, dim=-1)
-
+        orig = x
         for l in self.ll:
             x = self.dropout(x)
             x = l(x)
-            x = x + orig  # residuals before activation
+            x = torch.concat([x, orig], dim=-1)  # always give the layer access to the initial input
             x = F.relu(x)
         x = self.classifier(x)
 
