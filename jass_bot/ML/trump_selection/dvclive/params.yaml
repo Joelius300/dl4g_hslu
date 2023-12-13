@@ -1,6 +1,6 @@
-hidden_dim: 10
+hidden_dim: 30
 n_layers: 5
-learning_rate: 0.0001
+learning_rate: 0.001
 csv_path: data/swisslos_balanced_full.csv
 test_split: 0
 val_split: 0.2
