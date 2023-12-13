@@ -1,10 +1,8 @@
-hidden_dim: 50
-n_layers: 3
-learning_rate: 0.001
-train_path: data/graf-dataset-balanced/train/
-val_path: data/graf-dataset-balanced/val/
+hidden_dim: 10
+n_layers: 5
+learning_rate: 0.0001
+csv_path: data/swisslos_balanced_full.csv
+test_split: 0
+val_split: 0.2
 batch_size: 500000
 num_workers: 4
-csv_path: data/swisslos_balanced.csv
-test_split: 0.2
-val_split: 0.2
