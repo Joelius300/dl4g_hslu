@@ -44,9 +44,12 @@ class TrumpSwisslosDataModule(pl.LightningDataModule):
 
         # we need stratification, otherwise torch's random_split would work too.
         # Stratify with a combination of fh and trump: 00,01,02,03,04,05,10,11,12,13,14,15,16
-        X_train, X_test, y_train, y_test, fh_train, _ = train_test_split(
-            X, y, fh, test_size=self.test_split, stratify=(fh * 10 + y), random_state=42
-        )
+        if self.test_split > 0:
+            X_train, X_test, y_train, y_test, fh_train, _ = train_test_split(
+                X, y, fh, test_size=self.test_split, stratify=(fh * 10 + y), random_state=42
+            )
+        else:
+            X_train, y_train, fh_train = X, y, fh
         X_train, X_val, y_train, y_val = train_test_split(
             X_train,
             y_train,
@@ -57,7 +60,7 @@ class TrumpSwisslosDataModule(pl.LightningDataModule):
 
         self.train_dataset = TrumpDataset(X_train, y_train)
         self.val_dataset = TrumpDataset(X_val, y_val)
-        self.test_dataset = TrumpDataset(X_test, y_test)
+        self.test_dataset = TrumpDataset(X_test, y_test) if self.test_split > 0 else None
 
     def train_dataloader(self):
         return DataLoader(
@@ -78,6 +81,9 @@ class TrumpSwisslosDataModule(pl.LightningDataModule):
         )
 
     def test_dataloader(self):
+        if self.test_dataset is None:
+            raise Exception("No test dataloader because test_split was not positive.")
+
         return DataLoader(
             self.test_dataset,
             batch_size=self.batch_size,

@@ -1,3 +1,4 @@
+import argparse
 import logging
 import os.path
 import sys
@@ -74,9 +75,9 @@ def get_graf_datamodule(batch_size: int, num_workers=4):
     )
 
 
-def get_swisslos_datamodule(batch_size: int, test_split=0.2, num_workers=4):
+def get_swisslos_datamodule(batch_size: int, full: bool, test_split=0.2, num_workers=4):
     return TrumpSwisslosDataModule(
-        "data/swisslos_balanced.csv",
+        "data/swisslos_balanced.csv" if not full else "data/swisslos_balanced_full.csv",
         # keep some test data to judge "how well the model imitates top human players" -> may not be best performance
         test_split=test_split,
         # hard code the 80/20 split here too to avoid inconsistencies
@@ -89,8 +90,9 @@ def get_swisslos_datamodule(batch_size: int, test_split=0.2, num_workers=4):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
-    if len(sys.argv) < 2 or sys.argv[1] not in ["graf", "swisslos"]:
-        logger.error("Must specify the dataset to be used ('graf' or 'swisslos').")
+    # for bigger projects, use argparse
+    if len(sys.argv) < 2 or sys.argv[1] not in ["graf", "swisslos", "swisslos_full"]:
+        logger.error("Must specify the dataset to be used ('graf', 'swisslos' or 'swisslos_full').")
         sys.exit(1)
 
     checkpoint_path = None
@@ -116,7 +118,7 @@ if __name__ == "__main__":
     if graf:
         dm = get_graf_datamodule(batch_size)
     else:
-        dm = get_swisslos_datamodule(batch_size)
+        dm = get_swisslos_datamodule(batch_size, full=sys.argv[1].endswith("_full"), test_split=0)
 
     max_epochs = params["max_epochs"]
     early_stop_patience = params["early_stop_patience"]
