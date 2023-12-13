@@ -1,6 +1,7 @@
-hidden_dim: 37
+hidden_dim_factor: 1
 n_layers: 5
 learning_rate: 0.001
+dropout_rate: 0.0
 train_path: data/graf-dataset-balanced/train/
 val_path: data/graf-dataset-balanced/val/
 batch_size: 500000
