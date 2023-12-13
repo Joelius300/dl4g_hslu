@@ -108,10 +108,11 @@ if __name__ == "__main__":
     if checkpoint_path:
         model = TrumpSelection.load_from_checkpoint(checkpoint_path)
     else:
-        hidden_dim = params["hidden_dim"]
+        hidden_dim_factor = params["hidden_dim_factor"]
         n_layers = params["n_layers"]
         learning_rate = params["learning_rate"]
-        model = TrumpSelection(hidden_dim, n_layers, learning_rate)
+        dropout_rate = params["dropout_rate"]
+        model = TrumpSelection(hidden_dim_factor, n_layers, learning_rate, dropout_rate)
 
     batch_size = params["batch_size"]
     graf = sys.argv[1] == "graf"

@@ -10,15 +10,19 @@ N_CLASSES = 7  # all trumps + push
 
 
 class TrumpSelection(pl.LightningModule):
-    def __init__(self, hidden_dim: int, n_layers: int, learning_rate: float):
+    def __init__(
+        self,
+        hidden_dim_factor: int,
+        n_layers: int,
+        learning_rate: float,
+        dropout_rate: float = 0,
+    ):
         super().__init__()
 
         self.save_hyperparameters()
 
-        if INPUT_DIM != hidden_dim:
-            raise ValueError(
-                "For the current impl of skip connections, hidden_dim must be equal to input_dim"
-            )
+        self.hidden_dim_factor = hidden_dim_factor
+        hidden_dim = hidden_dim_factor * INPUT_DIM
 
         # Experiments to do
         # - Dropout
@@ -34,6 +38,7 @@ class TrumpSelection(pl.LightningModule):
         )
 
         self.classifier = nn.Linear(hidden_dim, N_CLASSES)
+        self.dropout = nn.Dropout(dropout_rate)
         self.criterion = nn.CrossEntropyLoss()
 
         self.metrics = nn.ModuleDict(
@@ -51,9 +56,14 @@ class TrumpSelection(pl.LightningModule):
             [1] * 9 + [0] * (INPUT_DIM - 9), dtype=torch.float
         )
 
-    def forward(self, x):
-        orig = x
+    def forward(self, x: torch.Tensor):
+        if x.dim() == 2:
+            orig = x.expand(-1, x.shape[1] * self.hidden_dim_factor)
+        else:
+            orig = x.expand(x.shape[0] * self.hidden_dim_factor)
+
         for l in self.ll:
+            x = self.dropout(x)
             x = l(x)
             x = x + orig  # residuals before activation
             x = F.relu(x)

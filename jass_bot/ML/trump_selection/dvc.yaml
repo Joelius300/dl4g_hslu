@@ -16,8 +16,9 @@ stages:
     - data/graf-dataset-balanced
 #     - data/swisslos_balanced_full.csv
     params:
-    - pre_train.hidden_dim
+    - pre_train.hidden_dim_factor
     - pre_train.n_layers
+    - pre_train.dropout_rate
     - pre_train.learning_rate
     - pre_train.batch_size
     - pre_train.max_epochs
