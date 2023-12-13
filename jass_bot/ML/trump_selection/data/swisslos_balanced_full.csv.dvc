@@ -1,0 +1,5 @@
+outs:
+- md5: ba38b26ea051fcc3c48a32c365d1edac
+  size: 7841976
+  hash: md5
+  path: swisslos_balanced_full.csv
