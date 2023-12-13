@@ -13,9 +13,9 @@ pre_train:
   early_stop_patience: 30
 
 fine_tune:
-  learning_rate: 1e-3
+  learning_rate: 0.0001
   batch_size: 150000
-  max_epochs: 20000
+  max_epochs: 100
   early_stop_patience: 50
 
 evaluate_trump_model:
@@ -23,4 +23,4 @@ evaluate_trump_model:
   time_budget: 0.05
   n_sets: 128
   points_threshold: 1000
-  num_workers: 16
+  num_workers: 4

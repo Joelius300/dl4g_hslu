@@ -58,25 +58,25 @@ stages:
       params.yaml:
         fine_tune.batch_size: 150000
         fine_tune.early_stop_patience: 50
-        fine_tune.learning_rate: 0.001
-        fine_tune.max_epochs: 20000
+        fine_tune.learning_rate: 0.0001
+        fine_tune.max_epochs: 100
     outs:
     - path: dvclive/artifacts/trump_selection.ckpt
       hash: md5
-      md5: e429e9146dd1c15596da11d61b0e6a47
-      size: 3939870
+      md5: bc5d17e8ef366e64c91b7aec04436c4f
+      size: 3939806
   evaluate_trump_model:
     cmd: python -OO evaluate_trump_model.py
     deps:
     - path: dvclive/artifacts/trump_selection.ckpt
       hash: md5
-      md5: e429e9146dd1c15596da11d61b0e6a47
-      size: 3939870
+      md5: bc5d17e8ef366e64c91b7aec04436c4f
+      size: 3939806
     params:
       params.yaml:
         evaluate_trump_model.checkpoint_path: dvclive/artifacts/trump_selection.ckpt
         evaluate_trump_model.n_sets: 128
-        evaluate_trump_model.num_workers: 16
+        evaluate_trump_model.num_workers: 4
         evaluate_trump_model.points_threshold: 1000
         evaluate_trump_model.time_budget: 0.05
   swisslos_pretrain:
