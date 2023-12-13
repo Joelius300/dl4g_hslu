@@ -132,4 +132,5 @@ if __name__ == "__main__":
     )
 
     next_checkpoint_path = MODEL_NAME + ("_pre_trained" if pre_train else "")
-    train(model, dm, max_epochs, early_stop_patience, 5 if graf else 1, next_checkpoint_path, clear=pre_train)
+    print_every_n = 5 if graf else 1
+    train(model, dm, max_epochs, early_stop_patience, print_every_n, next_checkpoint_path, clear=pre_train)
