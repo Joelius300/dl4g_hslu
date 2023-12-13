@@ -57,10 +57,7 @@ class TrumpSelection(pl.LightningModule):
         )
 
     def forward(self, x: torch.Tensor):
-        if x.dim() == 2:
-            orig = x.expand(-1, x.shape[1] * self.hidden_dim_factor)
-        else:
-            orig = x.expand(x.shape[0] * self.hidden_dim_factor)
+        orig = torch.concat([x] * self.hidden_dim_factor, dim=-1)
 
         for l in self.ll:
             x = self.dropout(x)
