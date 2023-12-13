@@ -15,6 +15,11 @@ class TrumpSelection(pl.LightningModule):
 
         self.save_hyperparameters()
 
+        if INPUT_DIM != hidden_dim:
+            raise ValueError(
+                "For the current impl of skip connections, hidden_dim must be equal to input_dim"
+            )
+
         # Experiments to do
         # - Dropout
         # - Residual connections
@@ -27,6 +32,7 @@ class TrumpSelection(pl.LightningModule):
             [nn.Linear(INPUT_DIM, hidden_dim)]
             + [nn.Linear(hidden_dim, hidden_dim) for _ in range(n_layers - 1)]
         )
+
         self.classifier = nn.Linear(hidden_dim, N_CLASSES)
         self.criterion = nn.CrossEntropyLoss()
 
@@ -46,8 +52,10 @@ class TrumpSelection(pl.LightningModule):
         )
 
     def forward(self, x):
+        orig = x
         for l in self.ll:
             x = l(x)
+            x = x + orig  # residuals before activation
             x = F.relu(x)
         x = self.classifier(x)
 
