@@ -11,11 +11,12 @@ stages:
 #    - swisslos_balancing.top_p
 #    outs:
 #    - data/swisslos_balanced.csv
-  swisslos_pretrain:
-    cmd: python -OO training.py swisslos_full
+  graf_pretrain:
+    cmd: python -OO training.py graf
     deps:
     - training.py
-    - data/swisslos_balanced_full.csv
+    - data/graf-dataset-balanced
+#     - data/swisslos_balanced_full.csv
     params:
     - pre_train.hidden_dim
     - pre_train.n_layers
@@ -25,24 +26,25 @@ stages:
     - pre_train.early_stop_patience
     outs:
     - dvclive/artifacts/trump_selection_pre_trained.ckpt
-#  swisslos_finetuning:
-#    cmd: python -OO training.py swisslos dvclive/artifacts/trump_selection_pre_trained.ckpt
-#    deps:
-#    - training.py
-#    - data/swisslos_balanced.csv
-#    params:
-#    - fine_tune.learning_rate
-#    - fine_tune.batch_size
-#    - fine_tune.max_epochs
-#    - fine_tune.early_stop_patience
-#    outs:
-#    - dvclive/artifacts/trump_selection.ckpt
+  swisslos_finetuning:
+    cmd: python -OO training.py swisslos_full dvclive/artifacts/trump_selection_pre_trained.ckpt
+    deps:
+    - training.py
+    - data/swisslos_balanced_full.csv
+    - dvclive/artifacts/trump_selection_pre_trained.ckpt
+    params:
+    - fine_tune.learning_rate
+    - fine_tune.batch_size
+    - fine_tune.max_epochs
+    - fine_tune.early_stop_patience
+    outs:
+    - dvclive/artifacts/trump_selection.ckpt
   evaluate_trump_model:
     cmd: python -OO evaluate_trump_model.py
     deps:
     - evaluate_trump_model.py
-    - dvclive/artifacts/trump_selection_pre_trained.ckpt
-#    - dvclive/artifacts/trump_selection.ckpt
+#    - dvclive/artifacts/trump_selection_pre_trained.ckpt
+    - dvclive/artifacts/trump_selection.ckpt
     params:
     - evaluate_trump_model.checkpoint_path
     - evaluate_trump_model.time_budget
