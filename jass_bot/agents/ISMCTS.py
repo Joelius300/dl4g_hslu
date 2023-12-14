@@ -7,14 +7,13 @@ import math
 import time
 from typing import Callable, Optional, Self, Union, Tuple
 
-from jass_bot.heuristics import graf
-from jass.agents.agent import Agent
-from jass.game.const import team, card_strings, trump_strings_short
+from jass.game.const import team
 from jass.game.game_rule import GameRule
 from jass.game.game_sim import GameSim
 from jass.game.game_state_util import *
 from jass.game.game_util import *
 from jass.game.rule_schieber import RuleSchieber
+from jass_bot.strategies.card_strategy import CardStrategy
 
 Payoffs = np.ndarray[2, np.dtype[np.float64]]
 
@@ -32,7 +31,7 @@ def binary_payoff(state: GameObservation | GameState):
     return WINNER_0 if state.points[0] > state.points[1] else WINNER_1
 
 
-def UCB1(node: ISMCTS.Node, total_n: int, player: int, c=1.0) -> float:
+def UCB1(node: ISMCTSCardStrategy.Node, total_n: int, player: int, c=1.0) -> float:
     payoffs: float = node.W[team[player]]
     return (payoffs / node.N) + c * math.sqrt(math.log(total_n) / node.N)
 
@@ -50,14 +49,15 @@ def _get_remaining_cards_in_play_from_obs(obs: GameObservation):
     return remaining_cards
 
 
-def UCB1_selection(node: Node, sampled_state: GameState, player: int, c=1.0) -> Node:
+def UCB1_selection(node: ISMCTSCardStrategy.Node, sampled_state: GameState,
+                   player: int, c=1.0) -> ISMCTSCardStrategy.Node:
     return max(
         node.get_children_consistent_with_sample(sampled_state),
         key=lambda n: UCB1(n, n.parentN, player, c),
     )
 
 
-class ISMCTS(Agent):
+class ISMCTSCardStrategy(CardStrategy):
     class Node:
         """
         Search tree node. All the nodes in the tree are from the view of the root node player.
@@ -69,7 +69,7 @@ class ISMCTS(Agent):
             last_played_card: int,
             last_player: int,
             root_player: int,
-            parent: Optional[ISMCTS.Node],
+            parent: Optional[ISMCTSCardStrategy.Node],
         ):
             self.N = 0
             """Number of visits to this node."""
@@ -301,11 +301,6 @@ class ISMCTS(Agent):
 
         return self._get_payoffs(sim.state)
 
-    def action_trump(self, observation: GameObservation) -> int:
-        trump = graf.graf_trump_selection(observation)
-        self._logger.debug(f"Selected trump {trump_strings_short[trump]} according to graf heuristic.")
-        return trump
-
     def action_play_card(self, observation: GameObservation) -> int:
         return self.start_mcts_from_obs(observation, self.time_budget)
 
@@ -486,7 +481,7 @@ class ISMCTS(Agent):
 
         sampled_state = game_sim.state  # update sample state with sampled action
 
-        next_node = ISMCTS.Node(
+        next_node = ISMCTSCardStrategy.Node(
             observation_from_state(
                 # removes the information we can't know, like
                 # the hands of the others. However, it still
@@ -566,7 +561,7 @@ class ISMCTS(Agent):
         # if possible I'd like to remove it somehow so this way it'll be easier to adapt.
         self._backpropagation(next_node, payoffs)
 
-    def _assert_sample_validity(self, node: ISMCTS.Node, sampled_state: GameState):
+    def _assert_sample_validity(self, node: ISMCTSCardStrategy.Node, sampled_state: GameState):
         self._rule.assert_invariants(sampled_state)
         assert node.known_state.forehand == sampled_state.forehand
         assert node.known_state.declared_trump == sampled_state.declared_trump

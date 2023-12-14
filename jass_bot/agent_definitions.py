@@ -1,5 +1,5 @@
 from jass_bot.ML.trump_selection.model_trump_strategy import ModelTrumpStrategy
-from jass_bot.agents.ISMCTS import ISMCTS
+from jass_bot.agents.ISMCTS import ISMCTSCardStrategy
 from jass_bot.heuristics import graf
 from jass.agents.agent_random_schieber import AgentRandomSchieber
 from jass_bot.strategies.card_strategy import CardStrategy
@@ -40,7 +40,7 @@ def get_card_strat(card_def: dict, with_random_fallback=False) -> CardStrategy:
         strat = CardStrategy.from_agent(AgentRandomSchieber())
         with_random_fallback = False
     elif name == "ISMCTS":
-        strat = CardStrategy.from_agent(ISMCTS(time_budget=card_def["time_budget"]))
+        strat = ISMCTSCardStrategy(time_budget=card_def["time_budget"])
     elif name == "just_fail":
         strat = CardStrategy.from_function(_just_fail)
     else:

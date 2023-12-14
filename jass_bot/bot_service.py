@@ -1,10 +1,11 @@
 import logging
 import os
 
+from jass_bot.agents.CompositeAgent import CompositeAgent
 from jass_bot.agents.MultiPlayerAgentContainer import MultiPlayerAgentContainer
 from jass.agents.agent_random_schieber import AgentRandomSchieber
 from jass.service.player_service_app import PlayerServiceApp
-from jass_bot.agents.ISMCTS import ISMCTS
+from jass_bot.agents.ISMCTS import ISMCTSCardStrategy
 
 DEFAULT_TIME_BUDGET = 5
 DEFAULT_LOGGING_LEVEL = logging.WARNING
@@ -24,6 +25,7 @@ def create_app():
     app.add_player("random", AgentRandomSchieber())
     # TODO add random fallback
     app.add_player("ISMCTS", MultiPlayerAgentContainer(lambda: ISMCTS(time_budget)))
+    # app.add_player("ISMCTS", MultiPlayerAgentContainer(lambda: ISMCTS(time_budget)))
 
     return app
 
