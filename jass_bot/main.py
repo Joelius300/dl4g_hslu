@@ -65,6 +65,10 @@ def check_failing():
 
 
 def compare_payoff_functions(time_budget=0.05, n_games=100):
+    # Evaluates different payoff functions to see which ones
+    # perform better. Only works for versions of ISMCTS where
+    # the payoff function is a parameter.
+    # Found that binary-winner outperforms point-normalized consistently.
     payoff_functions = {
         "points-normalized": points_div_by_max,
         "binary-winner": binary_payoff,

@@ -16,6 +16,18 @@ from jass.game.game_state_util import *
 from jass.game.game_util import *
 from jass.game.rule_schieber import RuleSchieber
 
+"""
+This module contains the code for an Information Set Monte Carlo Tree Search agent.
+The agent first defines a node, which is used to construct the tree and store information about the game at any
+given time; always from the view of the root player.
+It then defines an agent which constructs a new search tree from a given state, and does ISMCTS on it for
+the entirety of the time budget. The ISMCTS Process consists of
+
+1. sampling a state (information set) from all the possible ones given the known, imperfect information
+2. select the most promising node that is consistent with the sampled information set according to a tree policy (here UCB1).
+3. etc. TODO!
+"""
+
 Payoffs = np.ndarray[2, np.dtype[np.float64]]
 
 
@@ -50,7 +62,7 @@ def _get_remaining_cards_in_play_from_obs(obs: GameObservation):
     return remaining_cards
 
 
-def UCB1_selection(node: Node, sampled_state: GameState, player: int, c=1.0) -> Node:
+def UCB1_selection(node: ISMCTS.Node, sampled_state: GameState, player: int, c=1.0) -> ISMCTS.Node:
     return max(
         node.get_children_consistent_with_sample(sampled_state),
         key=lambda n: UCB1(n, n.parentN, player, c),
@@ -58,6 +70,18 @@ def UCB1_selection(node: Node, sampled_state: GameState, player: int, c=1.0) -> 
 
 
 class ISMCTS(Agent):
+    """
+    An Information Set Monte Carlo Tree Search Agent using UCB1 Selection and Random Walk Rollouts.
+
+    In previous versions, the payoff function, the tree policy and the rollout function were customizable
+    with a simple parameter (see git history at the customizable-ismcts tag). To simplify implementation of a
+    multiprocessing ISMCTS agent, which increases their playing strength by using multiple processes on
+    multiple cores of the Computer, the parameters that were found to be the most performant were
+    solidified. As such, the tree policy is now fixed at UCB1 (with customizable c parameter),
+    the payoff function is fixed to a binary winner function, which does not care about _by how many points_
+    you won, just _that_ you won (consistently outperforms normalized points), and the rollout function is
+    fixed at random walks, which could be improved with heuristics or even a machine learning model given the time.
+    """
     class Node:
         """
         Search tree node. All the nodes in the tree are from the view of the root node player.
@@ -247,43 +271,36 @@ class ISMCTS(Agent):
         self,
         time_budget: float,
         rule: GameRule = None,
-        tree_policy: Optional[Callable[[Node, int, int], Node]] = None,
-        rollout: Optional[Callable[[Node, GameState], Payoffs]] = None,
-        get_payoffs: Optional[Callable[[GameState], Payoffs]] = None,
-        ucb1_c_param: Optional[float] = math.sqrt(2),
+        ucb1_c_param: float = math.sqrt(2),
+        ignore_same_player_safety=False,
     ):
         super().__init__()
-
-        if tree_policy is None and ucb1_c_param is None:
-            raise ValueError("Either provide a tree_policy or a ucb1_c_param.")
 
         self._logger = logging.getLogger(__name__)
 
         self.time_budget = time_budget
         self._rule = rule if rule else RuleSchieber()
-        self._tree_policy = (
-            tree_policy
-            if tree_policy
-            else lambda node, sample, p: UCB1_selection(node, sample, p, c=ucb1_c_param)
-        )
-        self._rollout = rollout if rollout else self._random_walk
+        self.ucb1_c_param = ucb1_c_param
 
-        default_payoff_func = binary_payoff
-        self._get_payoffs = self._get_payoffs_meta(
-            get_payoffs if get_payoffs else default_payoff_func
-        )
-
+        # This player property is only used to assert that the calls to this agent
+        # are for the same player. This can be important in finding bugs but if there
+        # are no bugs, it can be ignored with the ignore_same_player_safety flag,
+        # which also removes the need for the MultiPlayerAgentContainer which side-steps
+        # cross-player issues instead of ignoring them (but there are no more known issues like that).
+        self.ignore_same_player_safety = ignore_same_player_safety
         self._player = -1
         """The player that we are playing as. Must always be the same per instance."""
 
-    def _get_payoffs_meta(
-        self, get_payoffs: Callable[[Union[GameObservation, GameState]], Payoffs]
-    ):
-        def internal_get_payoffs(state: GameObservation | GameState):
-            assert state.nr_tricks == 9, "Tried to get payoffs from non-terminal game"
-            return get_payoffs(state)
+    def _tree_policy(self, node, sample, p):
+        return UCB1_selection(node, sample, p, c=self.ucb1_c_param)
 
-        return internal_get_payoffs
+    def _rollout(self, node, sampled_state):
+        return self._random_walk(node, sampled_state)
+
+    @staticmethod
+    def _get_payoffs(state: GameObservation | GameState):
+        assert state.nr_tricks == 9, "Tried to get payoffs from non-terminal game"
+        return binary_payoff(state)
 
     def _random_walk(self, node: Node, sampled_state: GameState) -> Payoffs:
         if node.is_terminal:
@@ -302,6 +319,8 @@ class ISMCTS(Agent):
         return self._get_payoffs(sim.state)
 
     def action_trump(self, observation: GameObservation) -> int:
+        # use graf by default as it's a very strong and efficient baseline.
+        # Can use CardStrategy.from_agent to just use the ISMCTS card strategy with a different trump strategy.
         trump = graf.graf_trump_selection(observation)
         self._logger.debug(f"Selected trump {trump_strings_short[trump]} according to graf heuristic.")
         return trump
@@ -332,7 +351,7 @@ class ISMCTS(Agent):
                 last_player = next_player.index(state.trick_first_player[state.nr_tricks - 1])
 
         root = self.Node(
-            copy.deepcopy(state),  # deepcopy state to be sure. Not sure if views need to be restored here too.
+            copy.deepcopy(state),  # deepcopy state to be sure. Views aren't restored but doesn't matter here.
             last_played_card=last_card,
             last_player=last_player,
             root_player=state.player,
@@ -351,6 +370,7 @@ class ISMCTS(Agent):
             i += 1
             self.mcts(node)
 
+            # debug checks to ensure that the mcts implementation does not mutate state it's not supposed to
             if __debug__ and node.known_state != state_backup:
                 with open("backup_state.json", "wt") as backup_state_file:
                     backup_state_file.write(json.dumps(state_backup.to_json(), separators=(",", ":"), indent=4))
@@ -366,7 +386,8 @@ class ISMCTS(Agent):
 
         return best_card
 
-    def _sample_state(self, node: Node) -> GameState:
+    @staticmethod
+    def _sample_state(node: Node) -> GameState:
         remaining_cards = np.array(_get_remaining_cards_in_play_from_obs(node.known_state))
         assert (
             len(remaining_cards)
@@ -516,7 +537,8 @@ class ISMCTS(Agent):
 
         return next_node, sampled_state
 
-    def _backpropagation(self, node: Node, payoffs: Payoffs):
+    @staticmethod
+    def _backpropagation(node: Node, payoffs: Payoffs):
         # Note: Only function allowed to read and reset the last_sampled_state field
         parent = node
         while parent is not None:
@@ -548,10 +570,11 @@ class ISMCTS(Agent):
         assert (
             node.root_player == node.known_state.player and node.is_root
         ), "Started MCTS for non-root player node"
-        assert (
-            self._player == -1 or self._player == node.root_player
-        ), "Playing for different player suddenly?!"
-        self._player = node.root_player
+        if not self.ignore_same_player_safety:
+            assert (
+                self._player == -1 or self._player == node.root_player
+            ), "Playing for different player suddenly?!"
+            self._player = node.root_player
 
         self._assert_entry_state_validity(node.known_state)
 
