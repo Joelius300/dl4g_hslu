@@ -3,6 +3,7 @@ import logging
 import sys
 from typing import Callable
 
+from agents.MultiProcessingISMCTS import MultiProcessingISMCTS
 from jass_bot.agent_definitions import TrumpDefs, CardDefs
 from jass_bot.agent_definition import AgentDefinition
 from jass.agents.agent_by_network import AgentByNetwork
@@ -83,6 +84,17 @@ def compare_payoff_functions(time_budget=0.05, n_games=100):
     )
 
 
+def compare_normal_to_multiprocessing_mcts(time_budget=1.0, num_workers=4, point_threshold=1000):
+    arena = Arena(print_every_x_games=1, print_timings=True)
+    a = MultiProcessingISMCTS(
+        time_budget, num_workers=num_workers, ignore_same_player_safety=True
+    )
+    b = ISMCTS(time_budget, ignore_same_player_safety=True)
+    arena.set_players(a, b, a, b)
+    winner = arena.play_until_point_threshold(point_threshold)
+    print(f"Multiprocessing did {('NOT ' if winner == 1 else '')}outperform normal ISMCTS.")
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
@@ -92,7 +104,7 @@ if __name__ == "__main__":
 
     # compare_payoff_functions(time_budget=0.01)
     # compare_trump_strategies(0.05, n_sets=10)
-    check_failing()
+    # check_failing()
 
     # time_budget = .05
     # arena = Arena(print_every_x_games=1)
@@ -106,3 +118,5 @@ if __name__ == "__main__":
     # )
     # arena.set_players(a(), b(), a(), b())
     # arena.play_until_point_threshold(1000)
+
+    compare_normal_to_multiprocessing_mcts(1, 12, point_threshold=10000)
