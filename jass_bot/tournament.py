@@ -206,13 +206,14 @@ def round_robin_sets(
         if b not in scores:
             scores[b] = []
 
-        total_sets = wins_b + wins_a
-        scores[a].append(wins_a / total_sets)
-        scores[b].append(wins_b / total_sets)
+        scores[a].append(wins_a)
+        scores[b].append(wins_b)
 
-    best_player = max(scores, key=lambda p: sum(scores[p]))
+    best_player = max(scores.keys(), key=lambda p: sum(scores[p]))
 
-    print(f"Best player is {best_player} who scored as follows:")
+    set_win_best_player = sum(scores[best_player])
+    sets_per_player = n_sets*(len(players) - 1)
+    print(f"Best player is {best_player} who won {set_win_best_player} out of {sets_per_player} with following track:")
     # order by our wins ascending which should roughly give an ordering of the next best players ascending
     # (it's more intuitive to see the first listed opponent and think that's best of them, instead of the easiest)
     for opponent, (
