@@ -40,7 +40,12 @@ class MultiProcessingISMCTS(ISMCTS):
         )
         self.num_workers = num_workers if num_workers >= 0 else (os.cpu_count() - 1)
         if time_budget < 0.1:
-            print("!Warning! Low time_budget for multiprocessing mcts")
+            self._logger.warn("Low time_budget for multiprocessing mcts, might perform badly.")
+
+        self._logger.info(
+            f"Initialized root parallelized ISMCTS with {self.num_workers} workers "
+            f"and {time_budget}s time budget. UCB1 C param = {ucb1_c_param}."
+        )
 
     def mcts_until_time(self, node, time_end, seed=-1):
         if seed >= 0:
@@ -56,7 +61,8 @@ class MultiProcessingISMCTS(ISMCTS):
 
     def start_mcts(self, node: ISMCTS.Node, time_budget: float):
         """Does MCTS during a certain time_budget (in seconds) from node and returns the best card to play."""
-        time_to_do_the_rest = 0.025  # 25 miliseconds to account for overhead -> quite a lot actually
+        # 25 milliseconds to account for overhead -> quite a lot actually
+        time_to_do_the_rest = 0.025
         time_end = time.time() + time_budget - time_to_do_the_rest
 
         if self.num_workers == 0:
