@@ -199,7 +199,7 @@ def round_robin_sets(
             matchups[b] = {}
 
         matchups[a][b] = (wins_a, wins_b, mean_a, mean_b, games_avg, games_total)
-        matchups[b][a] = (wins_a, wins_b, mean_b, mean_a, games_avg, games_total)
+        matchups[b][a] = (wins_b, wins_a, mean_b, mean_a, games_avg, games_total)
 
         if a not in scores:
             scores[a] = []
