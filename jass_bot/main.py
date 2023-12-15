@@ -27,7 +27,7 @@ from jass.game.const import *
 from jass_bot.strategies.card_strategy import CardStrategy
 from jass_bot.strategies.trump_strategy import TrumpStrategy
 from jass_bot.agents.ISMCTS import points_div_by_max, binary_payoff
-from jass_bot.tournament import tournament_ABAB, round_robin_games, round_robin_sets
+from jass_bot.tournament import tournament_ABAB, round_robin, round_robin_sets
 
 
 def compare_trump_strategies(time_budget=0.05, n_sets=100, **kwargs):
@@ -77,7 +77,7 @@ def compare_payoff_functions(time_budget=0.05, n_games=100):
         "binary-winner": binary_payoff,
     }
 
-    return round_robin_games(
+    return round_robin(
         {
             name: lambda: ISMCTS(time_budget=time_budget, get_payoffs=payoff_func)
             for name, payoff_func in payoff_functions.items()
@@ -114,6 +114,24 @@ def compare_different_c_param_values(time_budget: float, n_sets=4, **kwargs):
     return round_robin_sets(players, n_sets=n_sets, **kwargs)
 
 
+def compare_different_c_param_values_long_multi(
+    time_budget: float, n_games=-1, point_threshold=-1, num_workers=8
+):
+    sq2 = math.sqrt(2)
+    cs = [sq2, 7, 8, 10]
+    players = {
+        f"c={c}": MultiProcessingISMCTS(
+            time_budget,
+            ucb1_c_param=c,
+            ignore_same_player_safety=True,
+            num_workers=num_workers,
+        )
+        for c in cs
+    }
+
+    return round_robin(players, n_games, point_threshold)
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
@@ -139,5 +157,6 @@ if __name__ == "__main__":
     # arena.play_until_point_threshold(1000)
 
     # compare_normal_to_multiprocessing_mcts(1, 12, point_threshold=10000)
-    print(compare_different_c_param_values(0.2, n_sets=15))
+    # print(compare_different_c_param_values(0.2, n_sets=15))
+    print(compare_different_c_param_values_long_multi(9.5, point_threshold=1000))
     # print(compare_trump_strategies(0.01, 2, num_workers=0))

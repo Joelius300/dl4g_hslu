@@ -138,17 +138,23 @@ def tournament_multiple_sets(
     return wins_0, wins_1, means[0], means[1], avg_games_played, total_games
 
 
-def round_robin_games(
+def round_robin(
     players: dict[str, Agent | AgentCheating | type | Callable[[], Agent | AgentCheating]],
-    n_games: int,
+    n_games=-1,
+    point_threshold=-1,
     **kwargs,
 ):
+    """
+    Does a round-robin tournament with all the players and prints a summary at the end.
+    Also returns the scores each player achieved and the results of each matchup
+    (basically the info that's also summarized and printed).
+    """
     scores = {}
     matchups = {}
     for [a, b] in combinations(players.keys(), 2):
         print(f"{a} vs. {b}")
         _, mean_a, mean_b, std, *_ = tournament_ABAB(
-            players[a], players[b], n_games=n_games, **kwargs
+            players[a], players[b], n_games=n_games, point_threshold=point_threshold, **kwargs
         )
         print()
         if a not in matchups:
@@ -185,6 +191,12 @@ def round_robin_sets(
     n_sets: int,
     **kwargs,
 ):
+    """
+    Runs a round-robin tournament but instead of being point based with n games or point threshold,
+    it runs a number of sets between all participants to a point threshold (1000 points by default).
+    Summarizes the results and returns them as the number of sets won by each participant and the results
+    of all matchups.
+    """
     scores = {}
     matchups = {}
     for [a, b] in combinations(players.keys(), 2):
