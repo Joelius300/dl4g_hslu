@@ -101,7 +101,8 @@ def compare_normal_to_multiprocessing_mcts(
 
 def compare_different_c_param_values(time_budget: float, n_sets=4, **kwargs):
     sq2 = math.sqrt(2)
-    cs = [1, sq2, sq2 / 2] + [sq2 * 1.5 * i for i in range(1, 10, 2)]
+    # cs = [1, sq2, sq2 / 2] + [sq2 * 1.5 * i for i in range(1, 10, 2)]
+    cs = [sq2, 3, 4, 5, 6, 7, 8]
     players = {
         f"c={c}": AgentDefinition(
             TrumpDefs.graf(),
