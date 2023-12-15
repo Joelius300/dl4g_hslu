@@ -1,5 +1,6 @@
 import copy
 import logging
+import math
 import sys
 from typing import Callable
 
@@ -29,7 +30,7 @@ from jass_bot.agents.ISMCTS import points_div_by_max, binary_payoff
 from jass_bot.tournament import tournament_ABAB, round_robin_games, round_robin_sets
 
 
-def compare_trump_strategies(time_budget=0.05, n_sets=100):
+def compare_trump_strategies(time_budget=0.05, n_sets=100, **kwargs):
     return round_robin_sets(
         {
             "ISMCTS w/ Graf": AgentDefinition(
@@ -42,6 +43,7 @@ def compare_trump_strategies(time_budget=0.05, n_sets=100):
             "Random w/ Random": AgentDefinition(TrumpDefs.random(), CardDefs.random(), False),
         },
         n_sets=n_sets,
+        **kwargs,
     )
 
 
@@ -84,7 +86,9 @@ def compare_payoff_functions(time_budget=0.05, n_games=100):
     )
 
 
-def compare_normal_to_multiprocessing_mcts(time_budget=1.0, num_workers=4, point_threshold=1000):
+def compare_normal_to_multiprocessing_mcts(
+    time_budget=1.0, num_workers=4, point_threshold=1000
+):
     arena = Arena(print_every_x_games=1, print_timings=True)
     a = MultiProcessingISMCTS(
         time_budget, num_workers=num_workers, ignore_same_player_safety=True
@@ -93,6 +97,20 @@ def compare_normal_to_multiprocessing_mcts(time_budget=1.0, num_workers=4, point
     arena.set_players(a, b, a, b)
     winner = arena.play_until_point_threshold(point_threshold)
     print(f"Multiprocessing did {('NOT ' if winner == 1 else '')}outperform normal ISMCTS.")
+
+
+def compare_different_c_param_values(time_budget: float, n_sets=4, **kwargs):
+    sq2 = math.sqrt(2)
+    cs = [1, sq2] + [sq2 / i for i in range(2, 6)] + [sq2 * i for i in range(2, 8)]
+    players = {
+        f"c={c}": AgentDefinition(
+            TrumpDefs.graf(),
+            CardDefs.ISMCTS(time_budget, ucb1_c_param=c, ignore_same_player_safety=True),
+        )
+        for c in cs
+    }
+
+    return round_robin_sets(players, n_sets=n_sets, **kwargs)
 
 
 if __name__ == "__main__":
@@ -119,4 +137,6 @@ if __name__ == "__main__":
     # arena.set_players(a(), b(), a(), b())
     # arena.play_until_point_threshold(1000)
 
-    compare_normal_to_multiprocessing_mcts(1, 12, point_threshold=10000)
+    # compare_normal_to_multiprocessing_mcts(1, 12, point_threshold=10000)
+    print(compare_different_c_param_values(0.25, n_sets=16))
+    # print(compare_trump_strategies(0.01, 2, num_workers=0))

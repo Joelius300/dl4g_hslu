@@ -1,3 +1,5 @@
+import copy
+
 from jass_bot.ML.trump_selection.model_trump_strategy import ModelTrumpStrategy
 from jass_bot.agents.ISMCTS import ISMCTS
 from jass_bot.heuristics import graf
@@ -13,14 +15,15 @@ def _just_fail(_obs):
 
 
 def get_trump_strat(trump_def: dict, with_random_fallback=False) -> TrumpStrategy:
-    name = trump_def["name"]
+    trump_def = copy.deepcopy(trump_def)
+    name = trump_def.pop("name")
     if name == "random":
         strat = TrumpStrategy.from_agent(AgentRandomSchieber())
         with_random_fallback = False
     elif name == "graf":
         strat = TrumpStrategy.from_function(graf.graf_trump_selection)
     elif name == "model":
-        strat = ModelTrumpStrategy(trump_def["checkpoint_path"])
+        strat = ModelTrumpStrategy(**trump_def)
     elif name == "just_fail":
         strat = TrumpStrategy.from_function(_just_fail)
     else:
@@ -35,12 +38,15 @@ def get_trump_strat(trump_def: dict, with_random_fallback=False) -> TrumpStrateg
 
 
 def get_card_strat(card_def: dict, with_random_fallback=False) -> CardStrategy:
-    name = card_def["name"]
+    card_def = copy.deepcopy(card_def)
+    name = card_def.pop("name")
     if name == "random":
         strat = CardStrategy.from_agent(AgentRandomSchieber())
         with_random_fallback = False
     elif name == "ISMCTS":
-        strat = CardStrategy.from_agent(ISMCTS(time_budget=card_def["time_budget"]))
+        strat = CardStrategy.from_agent(
+            ISMCTS(**card_def),
+        )
     elif name == "just_fail":
         strat = CardStrategy.from_function(_just_fail)
     else:
@@ -60,8 +66,8 @@ class CardDefs:
         return dict(name="random")
 
     @classmethod
-    def ISMCTS(cls, time_budget: float):
-        return dict(name="ISMCTS", time_budget=time_budget)
+    def ISMCTS(cls, time_budget: float, **kwargs):
+        return dict(name="ISMCTS", time_budget=time_budget, **kwargs)
 
     @classmethod
     def just_fail(cls):

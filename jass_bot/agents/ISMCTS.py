@@ -362,7 +362,9 @@ class ISMCTS(Agent):
 
     def start_mcts(self, node: Node, time_budget: float):
         """Does MCTS during a certain time_budget (in seconds) from node and returns the best card to play."""
-        time_end = time.time() + time_budget
+        # 2 millisecond to account for overhead, usually more than enough
+        time_to_do_the_rest = 0.002
+        time_end = time.time() + time_budget - time_to_do_the_rest
 
         state_backup = copy.deepcopy(node.known_state)
         i = 0
