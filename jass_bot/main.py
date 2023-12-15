@@ -101,7 +101,7 @@ def compare_normal_to_multiprocessing_mcts(
 
 def compare_different_c_param_values(time_budget: float, n_sets=4, **kwargs):
     sq2 = math.sqrt(2)
-    cs = [1, sq2] + [sq2 / i for i in range(2, 6)] + [sq2 * i for i in range(2, 8)]
+    cs = [1, sq2, sq2 / 2] + [sq2 * 1.5 * i for i in range(1, 10, 2)]
     players = {
         f"c={c}": AgentDefinition(
             TrumpDefs.graf(),
@@ -138,5 +138,5 @@ if __name__ == "__main__":
     # arena.play_until_point_threshold(1000)
 
     # compare_normal_to_multiprocessing_mcts(1, 12, point_threshold=10000)
-    print(compare_different_c_param_values(0.25, n_sets=16))
+    print(compare_different_c_param_values(0.2, n_sets=15))
     # print(compare_trump_strategies(0.01, 2, num_workers=0))
