@@ -16,4 +16,5 @@ pyarrow
 dask
 gymnasium
 stable-baselines3
+dvc[gdrive]
 dvclive

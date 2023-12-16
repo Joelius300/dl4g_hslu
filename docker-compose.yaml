@@ -5,9 +5,13 @@ services:
       dockerfile: jass_bot/Dockerfile
     command: gunicorn --bind 0.0.0.0:8888 "jass_bot.bot_service:create_app()"
     environment:
+      PLAYERS: "ISMCTSsq2,ISMCTS5,ISMCTS7,ISMCTS7-16,ISMCTS8"
       TIME_BUDGET: 9.75
-      # NUM_WORKERS: -1
-      # C_PARAM: 1
+      C_PARAM_ISMCTS5: 5
+      C_PARAM_ISMCTS7: 7
+      C_PARAM_ISMCTS7-16: 7
+      NUM_WORKERS_ISMCTS7-16: 16
+      C_PARAM_ISMCTS8: 8
       LOGGING_LEVEL: 'INFO'
     ports:
       - '8888:8888'

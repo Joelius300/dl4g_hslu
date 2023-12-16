@@ -2,4 +2,3 @@ wheel
 numpy~=1.25.2
 pandas
 flask
-dvc[gdrive]
