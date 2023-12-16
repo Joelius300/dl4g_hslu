@@ -117,8 +117,7 @@ def compare_different_c_param_values(time_budget: float, n_sets=4, **kwargs):
 def compare_different_c_param_values_long_multi(
     time_budget: float, n_games=-1, point_threshold=-1, num_workers=8
 ):
-    sq2 = math.sqrt(2)
-    cs = [sq2, 7, 8, 10]
+    cs = [7, 8.5, 10]
     players = {
         f"c={c}": MultiProcessingISMCTS(
             time_budget,
@@ -158,5 +157,5 @@ if __name__ == "__main__":
 
     # compare_normal_to_multiprocessing_mcts(1, 12, point_threshold=10000)
     # print(compare_different_c_param_values(0.2, n_sets=15))
-    print(compare_different_c_param_values_long_multi(9.5, point_threshold=1000))
+    print(compare_different_c_param_values_long_multi(9.5, point_threshold=500))
     # print(compare_trump_strategies(0.01, 2, num_workers=0))
