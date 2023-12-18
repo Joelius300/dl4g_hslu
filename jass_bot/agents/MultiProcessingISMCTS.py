@@ -113,7 +113,7 @@ class MultiProcessingISMCTS(ISMCTS):
         if self._logger.getEffectiveLevel() <= logging.DEBUG:
             df = pd.DataFrame(results)
             df = df.rename(columns=lambda x: card_strings[x])
-            print(df)
+            self._logger.debug(df.to_string())
 
         best_card = max(totals, key=totals.get)
         self._logger.debug(

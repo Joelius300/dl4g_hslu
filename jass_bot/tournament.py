@@ -1,4 +1,5 @@
 import concurrent.futures
+import logging
 import multiprocessing
 from itertools import repeat, combinations
 import os
@@ -10,6 +11,8 @@ from jass_bot.agent_definition import AgentDefinition, create_agent
 from jass.agents.agent import Agent
 from jass.agents.agent_cheating import AgentCheating
 from jass.arena.arena import Arena
+
+logger = logging.getLogger(__name__)
 
 
 def tournament_ABAB(
@@ -51,10 +54,10 @@ def tournament_ABAB(
     arena.set_players(ours, base, ours_2, base_2)
 
     if n_games > 0:
-        print(f"Playing {n_games} games")
+        logger.info(f"Playing {n_games} games")
         winner = arena.play_games(n_games)
     else:
-        print(f"Playing to {point_threshold} point")
+        logger.info(f"Playing to {point_threshold} point")
         winner = arena.play_until_point_threshold(point_threshold)
 
     mean_ours: float = arena.points_team_0.mean()
@@ -62,11 +65,11 @@ def tournament_ABAB(
     std_ours: float = arena.points_team_0.std()
     std_base: float = arena.points_team_1.std()
     games_played = arena.nr_games_played
-    print(
+    logger.info(
         f"Winner: {winner} ({('ours' if winner == 0 else 'base')}) after {games_played} games"
     )
-    print(f"Avg Points Team 0 (ours): {mean_ours:.2f} with std {std_ours:.2f}")
-    print(f"Avg Points Team 1 (base): {mean_base:.2f} with std {std_base:.2f}")
+    logger.info(f"Avg Points Team 0 (ours): {mean_ours:.2f} with std {std_ours:.2f}")
+    logger.info(f"Avg Points Team 1 (base): {mean_base:.2f} with std {std_base:.2f}")
 
     return (
         winner,
@@ -83,7 +86,16 @@ def tournament_ABAB(
 def _run_tournament(ours: AgentDefinition, base: AgentDefinition, point_threshold: int):
     our_agent = create_agent(ours)
     base_agent = create_agent(base)
-    winner, _mean_ours, _mean_base, std_ours, std_base, games_played, points_ours, points_base = tournament_ABAB(
+    (
+        winner,
+        _mean_ours,
+        _mean_base,
+        std_ours,
+        std_base,
+        games_played,
+        points_ours,
+        points_base,
+    ) = tournament_ABAB(
         our_agent,
         base_agent,
         point_threshold=point_threshold,
@@ -152,7 +164,7 @@ def round_robin(
     scores = {}
     matchups = {}
     for [a, b] in combinations(players.keys(), 2):
-        print(f"{a} vs. {b}")
+        logger.info(f"{a} vs. {b}")
         _, mean_a, mean_b, std, *_ = tournament_ABAB(
             players[a], players[b], n_games=n_games, point_threshold=point_threshold, **kwargs
         )
@@ -175,13 +187,13 @@ def round_robin(
 
     best_player = max(scores, key=lambda p: sum(scores[p]))
 
-    print(f"Best player is {best_player} who scored as follows:")
+    logger.info(f"Best player is {best_player} who scored as follows:")
     # order by our score ascending which should roughly give an ordering of the next best players ascending
     # (it's more intuitive to see the first listed opponent and think that's best of them, instead of the easiest)
     for opponent, (score_best, score_opp, std) in sorted(
         matchups[best_player].items(), key=lambda m: m[1][0]
     ):
-        print(f"  vs. {opponent}: {score_best:.2f} to {score_opp:.2f} (std {std:.2f})")
+        logger.info(f"  vs. {opponent}: {score_best:.2f} to {score_opp:.2f} (std {std:.2f})")
 
     return scores, matchups
 
@@ -200,7 +212,7 @@ def round_robin_sets(
     scores = {}
     matchups = {}
     for [a, b] in combinations(players.keys(), 2):
-        print(f"{a} vs. {b}")
+        logger.info(f"{a} vs. {b}")
         wins_a, wins_b, mean_a, mean_b, games_avg, games_total = tournament_multiple_sets(
             players[a], players[b], n_sets=n_sets, **kwargs
         )
@@ -224,8 +236,10 @@ def round_robin_sets(
     best_player = max(scores.keys(), key=lambda p: sum(scores[p]))
 
     set_win_best_player = sum(scores[best_player])
-    sets_per_player = n_sets*(len(players) - 1)
-    print(f"Best player is {best_player} who won {set_win_best_player} out of {sets_per_player} with following track:")
+    sets_per_player = n_sets * (len(players) - 1)
+    logger.info(
+        f"Best player is {best_player} who won {set_win_best_player} out of {sets_per_player} with following track:"
+    )
     # order by our wins ascending which should roughly give an ordering of the next best players ascending
     # (it's more intuitive to see the first listed opponent and think that's best of them, instead of the easiest)
     for opponent, (
@@ -237,7 +251,7 @@ def round_robin_sets(
         games_total,
     ) in sorted(matchups[best_player].items(), key=lambda m: m[1][0]):
         win_rate = wins_best / (wins_best + wins_opp)
-        print(
+        logger.info(
             f"  vs. {opponent}: {wins_best} to {wins_opp} wins ({win_rate:.2%}) "
             f"(scores {score_best:.2f} to {score_opp:.2f}) "
             f"with avg set length {games_avg:.2f} and total games played {games_total}"

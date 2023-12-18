@@ -38,7 +38,7 @@ def create_app():
             ignore_same_player_safety=True,
         )
         app.add_player(player_name, player)
-        print(
+        logging.info(
             f"Player '{player_name}': time budget {player.time_budget}, num workers {player.num_workers}, "
             f"c param {player.ucb1_c_param}"
         )

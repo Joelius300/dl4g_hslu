@@ -4,7 +4,7 @@ import math
 import sys
 from typing import Callable
 
-from agents.MultiProcessingISMCTS import MultiProcessingISMCTS
+from jass_bot.agents.MultiProcessingISMCTS import MultiProcessingISMCTS
 from jass_bot.agent_definitions import TrumpDefs, CardDefs
 from jass_bot.agent_definition import AgentDefinition
 from jass.agents.agent_by_network import AgentByNetwork
@@ -96,7 +96,7 @@ def compare_normal_to_multiprocessing_mcts(
     b = ISMCTS(time_budget, ignore_same_player_safety=True)
     arena.set_players(a, b, a, b)
     winner = arena.play_until_point_threshold(point_threshold)
-    print(f"Multiprocessing did {('NOT ' if winner == 1 else '')}outperform normal ISMCTS.")
+    logging.info(f"Multiprocessing did {('NOT ' if winner == 1 else '')}outperform normal ISMCTS.")
 
 
 def compare_different_c_param_values(time_budget: float, n_sets=4, **kwargs):
@@ -131,8 +131,20 @@ def compare_different_c_param_values_long_multi(
     return round_robin(players, n_games, point_threshold)
 
 
+def compare_baseline_against_remote(url: str, time_budget=0.5, point_threshold=1000):
+    arena = Arena(print_every_x_games=1, print_timings=True)
+    a = AgentByNetwork(url)
+    b = ISMCTS(time_budget, ignore_same_player_safety=True)
+    arena.set_players(a, b, a, b)
+    winner = arena.play_until_point_threshold(point_threshold)
+    logging.info(f"Remote {url} did {('NOT ' if winner == 1 else '')}outperform baseline ISMCTS.")
+
+
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(
+        level=logging.INFO,
+        handlers=[logging.FileHandler("log.txt"), logging.StreamHandler()],
+    )
 
     # tournament_ABAB(
     #     AgentByNetwork("http://localhost:8888/ISMCTS"), AgentRandomSchieber, n_games=3
@@ -157,5 +169,6 @@ if __name__ == "__main__":
 
     # compare_normal_to_multiprocessing_mcts(1, 12, point_threshold=10000)
     # print(compare_different_c_param_values(0.2, n_sets=15))
-    print(compare_different_c_param_values_long_multi(9.5, point_threshold=500))
+    # print(compare_different_c_param_values_long_multi(9.5, point_threshold=500))
     # print(compare_trump_strategies(0.01, 2, num_workers=0))
+
