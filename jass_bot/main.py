@@ -4,13 +4,13 @@ import math
 import sys
 from typing import Callable
 
-from jass_bot.agents.MultiProcessingISMCTS import MultiProcessingISMCTS
+from jass_bot.agents.multi_processing_ISMCTS import MultiProcessingISMCTS
 from jass_bot.agent_definitions import TrumpDefs, CardDefs
 from jass_bot.agent_definition import AgentDefinition
 from jass.agents.agent_by_network import AgentByNetwork
-from jass_bot.agents.CompositeAgent import CompositeAgent
+from jass_bot.agents.composite_agent import CompositeAgent
 from jass_bot.heuristics import graf
-from jass_bot.agents.CheatingMCTS import CheatingMCTS
+from jass_bot.agents.cheating_mcts import CheatingMCTS
 from jass_bot.agents.ISMCTS import ISMCTS
 from jass_bot.agents.alphabeta_agent import AlphaBetaAgent
 from jass_bot.agents.game_tree_container import GameTreeContainer

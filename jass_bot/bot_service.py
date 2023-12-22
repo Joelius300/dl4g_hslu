@@ -2,7 +2,7 @@ import logging
 import math
 import os
 
-from jass_bot.agents.MultiProcessingISMCTS import MultiProcessingISMCTS
+from jass_bot.agents.multi_processing_ISMCTS import MultiProcessingISMCTS
 from jass.agents.agent_random_schieber import AgentRandomSchieber
 from jass.service.player_service_app import PlayerServiceApp
 

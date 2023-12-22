@@ -87,5 +87,7 @@ if __name__ == "__main__":
 
     # TODO allow customization of the path here so two balanced datasets can be generated
     # for example for the use-case where a model is pre-trained on the entire swisslos dataset
-    # and then fine-tuned (overfit) on the top 10%
+    # and then fine-tuned (overfit) on the top 10%.
+    # Could still be done as improvement but was not necessary in the end because swisslos_balanced_full.csv
+    # was simply generated once.
     balanced.to_csv(TRUMP_DATASET_BALANCED_PATH)

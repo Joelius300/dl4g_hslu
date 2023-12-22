@@ -24,8 +24,12 @@ It then defines an agent which constructs a new search tree from a given state, 
 the entirety of the time budget. The ISMCTS Process consists of
 
 1. sampling a state (information set) from all the possible ones given the known, imperfect information
-2. select the most promising node that is consistent with the sampled information set according to a tree policy (here UCB1).
-3. etc. TODO!
+2. select the most promising, not fully explored node that is consistent with the sampled information set according to a tree policy (here UCB1).
+3. expand the selected node with a random possible action
+4. do a rollout (here with a random walk) to get a set of payoffs for both teams
+5. back-propagate the payoffs up the tree
+
+In the end, the root child with the most visits is returned as the best action.
 """
 
 Payoffs = np.ndarray[2, np.dtype[np.float64]]
